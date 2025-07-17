@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+    <head>
+        <meta charset="UTF-8"/>
+        <meta name="viewport" content="width=device-width", initial-scale="1.0"/>
+        <link rel = "icon" href = "RendererIcon.ico" />
+        <title> NIDUS Renderer </title>
+        
+        <!-- Style import for HTML components. -->
+        <link rel="stylesheet" href="styles.css">
+
+
+    </head>
+
+    <body>
+        <div id="app">
+            <!-- Put the Renderer first then layer the tool bar and other widgets -->
+            <!-- <div id="vtk-vol_container"></div> -->
+            <div id="controls">
+                <!-- Toolbar Details -->
+                <div id="toolbar">
+                    <label for="fileInput">Select NRRD/DICOM:</label>
+                    <input type="file" id="fileInput" accept=".nrrd,.dcm,.dicom" />
+                    <label for="dicomInput">Select DICOM Directory:</label>
+                    <input type="file" id="dicomInput" webkitdirectory multiple />
+                    
+                    <button id="toggleSlice">Toggle Slice View</button>
+                    
+                    <!-- Slicer Controls -->
+                    <div id="slice-sliders" style="display: none;">
+                        <!-- Check Boxes -->
+                        <div>
+                            <input type="checkbox" id="dispVolBox" name="dispVolBox" value="displayVol" checked>
+                            <label for="dispVol">Display Volume on Main Render</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="dispSlicesBox" name="dispSlicesBox" value="displaySlice">
+                            <label for="dispSlices">Display Slices on Main Render</label>
+                        </div>
+
+                        <!-- Sliders -->
+                        <div>
+                            <label for="ax_slider">Axial Slice:</label>
+                            <input type="range" id="ax_slider" />
+                        </div>
+                        <div>
+                            <label for="sa_slider">Sagittal Slice:</label>
+                            <input type="range" id="sa_slider" />
+                        </div>
+                        <div>
+                            <label for="cor_slider">Coronal Slice:</label>
+                            <input type="range" id="cor_slider" />
+                        </div>
+                        
+                        
+                    </div>
+                
+                </div>
+            </div>
+
+            
+            <!-- Rendering Area -->
+            <div id="render-area">
+                <!-- VTK Container -->
+                <div id="vtk-vol_container">
+                    
+                </div>
+                
+                <!-- Slices -->
+                <div id="sliceRow" style="display: none;">
+                    <div>
+                        <p id="axialSliceLabel">Axial View</p>
+                        <div class='slice-view' id="AxialSlice"></div>
+                    </div>
+                    <div>
+                        <p id="sagittalSliceLabel">Sagittal View</p>
+                        <div class='slice-view' id="SagittalSlice"></div>
+                    </div>
+                    <div>
+                        <p id="coronalSliceLabel">Coronal View</p>
+                        <div class='slice-view' id="CoronalSlice"></div>
+                    </div>
+                    
+                </div>
+            </div>
+
+            <!-- VTK & ITK Import Lines -->
+            <script type="text/javascript" src="https://unpkg.com/vtk.js@latest/vtk.js"></script>
+            <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/itk-wasm@1.0.0-b.106/dist/umd/itk-wasm.min.js"></script>
+
+            <!-- Main Script Import -->
+            <script src="./main.js"></script>
+        </div>
+    </body>
+
+</html>

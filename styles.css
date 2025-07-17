@@ -1,0 +1,114 @@
+body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+    justify-content: center;
+    align-items: center;
+}
+
+#app {
+    display: flex;
+    flex-direction: row;
+    width: 100vw;
+    height: 100vh;
+}
+
+#controls{
+    flex: 0 0 250px;
+    background: rgb(10, 54, 74);
+    color: white;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    box-sizing: border-box;
+}
+
+#controls label,
+#controls input,
+#controls button{
+    margin-bottom: 10px;
+}
+
+#vtk-vol_container {
+    flex: 1;
+    background: rgb(8, 79, 111);
+    position: relative;
+    z-index: 1;
+
+}
+
+#render-area{
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    min-width: 0;
+}
+
+#sliceRow{
+    display: flex;
+    height: 50%;
+    width: 100%;
+    background: rgb(9, 85, 120);
+    flex-direction: row;
+    justify-content: space-evenly;
+    z-index: 2;
+    gap: 0;
+    padding: 0;
+    margin: 0;
+    border-color: black;
+    mask-border-width: 1px;
+}
+
+.slice-view{
+    flex: 1;
+    border: 1px solid rgb(9, 85, 120);
+    box-sizing: border-box;
+    position: relative;
+    width: 33%;
+    min-height: 100%;
+    /* padding: 0;
+    margin: 0; */
+}
+
+#AxialSlice{
+    background: red;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+#SagittalSlice{
+    background: yellow;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+#CoronalSlice{
+    background: green;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+#axialSliceLabel{
+    background-color: red;
+    width: 100%;
+}
+
+#sagittalSliceLabel{
+    background-color: yellow;
+    width: 100%;
+}
+
+#coronalSliceLabel{
+    background-color: green;
+    width: 100%;
+}
