@@ -81,7 +81,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     dicomInput.addEventListener('change', async (event) => {
-        
+        // Set Disp Volume Checkbox to checked and slices box to not checked
+        document.getElementById('dispVolBox').checked = true;
+        document.getElementById('dispSlicesBox').checked = false;
+
         // Grab files from directory.
         const files = Array.from(event.target.files);
         const dicomFiles = Array.from(files).filter((file) => file instanceof File && file.name.toLowerCase().endsWith('.dcm'));
@@ -145,6 +148,21 @@ window.addEventListener('DOMContentLoaded', () => {
             alert('Failed to load DICOM folder. Ensure it contains all valid DICOM series.');
         }
 
+        const resizeObserver = new ResizeObserver(() => {
+            // Reset cameras and rerender.
+            genericRenderWindow.resize();
+            renderer.resetCamera();
+            renderer.getActiveCamera().azimuth(0);
+            renderWindow.render();
+        });
+
+        resizeObserver.observe(containerRef);
+
+        // If slices already exist, update slice data.
+        if (axial_renderWindow && loaded_new && isSliceMode) {
+            updateSliceViews(vtkImage);
+        }
+
 
     });
 
@@ -158,6 +176,10 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     fileInput.addEventListener('change', async (event) => {
+        // Set Disp Volume Checkbox to checked and slices box to not checked
+        document.getElementById('dispVolBox').checked = true;
+        document.getElementById('dispSlicesBox').checked = false;
+        
         const file = event.target.files[0];
 
         // Alert user.
@@ -197,6 +219,8 @@ window.addEventListener('DOMContentLoaded', () => {
                 const { image } = await itk.readImageArrayBuffer(null, arrayBuffer, file.name);
                 itkImage = image;
 
+                loaded_new = true;
+
                 // Render the volume.
                 renderVolume(itkImage);
         }
@@ -211,7 +235,7 @@ window.addEventListener('DOMContentLoaded', () => {
         });
 
         resizeObserver.observe(containerRef);
-        
+
         // If slices already exist, update slice data.
         if (axial_renderWindow && loaded_new && isSliceMode){
             updateSliceViews(vtkImage);
@@ -374,17 +398,17 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('AxialSlice').addEventListener('wheel', (event) => {
         event.preventDefault();
 
-        const spacing = vtkImage.getSpacing();     // [sx, sy, sz]
-        const origin = vtkImage.getOrigin();       // [ox, oy, oz]
-        const extent = vtkImage.getExtent();       // [xmin, xmax, ymin, ymax, zmin, zmax]
+        const spacing = vtkImage.getSpacing();     // Spacing Values: [sx, sy, sz].
+        const origin = vtkImage.getOrigin();       // Origin Coordinates: [ox, oy, oz].
+        const extent = vtkImage.getExtent();       // Min/Max Values: [xmin, xmax, ymin, ymax, zmin, zmax].
         const planeOrigin = axial_Plane.getOrigin();
 
         // Current index along Z
         let currentIdx = Math.round((planeOrigin[2] - origin[2]) / spacing[2]);
 
         const delta = Math.sign(event.deltaY);
-        const minIdx = extent[4]; // zmin
-        const maxIdx = extent[5]; // zmax
+        const minIdx = extent[4]; // zmin value.
+        const maxIdx = extent[5]; // zmax value.
 
         // Clamp new index
         let newIdx = Math.min(Math.max(currentIdx + delta, minIdx), maxIdx);
@@ -399,8 +423,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // Render ONLY the axial window
         requestAnimationFrame(() => {
-            axial_openGLRenderWindow.modified();   // ensure it notices the update
-            axial_renderWindow.render();           // actually render the new slice
+            axial_openGLRenderWindow.modified();   // ensure the render window notices the update.
+            axial_renderWindow.render();           
             genericRenderWindow.getRenderWindow().render();
         });
 
@@ -410,31 +434,23 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('SagittalSlice').addEventListener('wheel', (event) => {
         event.preventDefault();
 
-        const spacing = vtkImage.getSpacing();     // [sx, sy, sz]
-        const origin = vtkImage.getOrigin();       // [ox, oy, oz]
-        const extent = vtkImage.getExtent();       // [xmin, xmax, ymin, ymax, zmin, zmax]
-        const bounds = vtkImage.getBounds();       // [xmin, xmax, ymin, ymax, zmin, zmax]
+        const spacing = vtkImage.getSpacing();     // Spacing Values: [sx, sy, sz].
+        const origin = vtkImage.getOrigin();       // Origin Coordingates: [ox, oy, oz].
+        const extent = vtkImage.getExtent();       // Min/Max Values: [xmin, xmax, ymin, ymax, zmin, zmax].
         const planeOrigin = sagittal_Plane.getOrigin();
 
-        // Current index along X (sagittal)
+        // Current index along X
         let currentIdx = Math.round((planeOrigin[0] - origin[0]) / spacing[0]);
 
         const delta = Math.sign(event.deltaY);
-        const minIdx = extent[0]; // xmin
-        const maxIdx = extent[1]; // xmax
+        const minIdx = extent[0]; // xmin value.
+        const maxIdx = extent[1]; // xmax value.
 
-        // Compute new index and clamp
+        // Clamp new index
         let newIdx = Math.min(Math.max(currentIdx + delta, minIdx), maxIdx);
-
-        // Compute world coordinate X position for the new slice
         let newX = origin[0] + newIdx * spacing[0];
 
-        // Clamp newX to data bounds (world space)
-        // Take the max of the new position and the minimum bound.
-        // Then take the minimum of the new position and the maximum bound.
-        newX = Math.min(Math.max(newX, bounds[0]), bounds[1]);
-
-        // Update plane
+        // Set new origin for the axial plane (x-axis moves)
         sagittal_Plane.setOrigin(newX, planeOrigin[1], planeOrigin[2]);
 
         // Update HTML slider (make sure it's an int)
@@ -455,29 +471,23 @@ window.addEventListener('DOMContentLoaded', () => {
     document.getElementById('CoronalSlice').addEventListener('wheel', (event) => {
         event.preventDefault();
 
-        const spacing = vtkImage.getSpacing();     // [sx, sy, sz]
-        const origin = vtkImage.getOrigin();       // [ox, oy, oz]
-        const extent = vtkImage.getExtent();       // [xmin, xmax, ymin, ymax, zmin, zmax]
-        const bounds = vtkImage.getBounds();       // [xmin, xmax, ymin, ymax, zmin, zmax]
+        const spacing = vtkImage.getSpacing();     // Spacing Values: [sx, sy, sz].
+        const origin = vtkImage.getOrigin();       // Origin Coordingates: [ox, oy, oz].
+        const extent = vtkImage.getExtent();       // Min/Max Values: [xmin, xmax, ymin, ymax, zmin, zmax].
         const planeOrigin = coronal_Plane.getOrigin();
 
-        // Current index along Y (coronal)
+        // Current index along X
         let currentIdx = Math.round((planeOrigin[1] - origin[1]) / spacing[1]);
 
         const delta = Math.sign(event.deltaY);
-        const minIdx = extent[2]; // ymin
-        const maxIdx = extent[3]; // ymax
+        const minIdx = extent[2]; // ymin value.
+        const maxIdx = extent[3]; // ymax value.
 
-        // Compute new index and clamp
+        // Clamp new index
         let newIdx = Math.min(Math.max(currentIdx + delta, minIdx), maxIdx);
-
-        // Compute world coordinate Y position for the new slice
         let newY = origin[1] + newIdx * spacing[1];
 
-        // Clamp newY to data bounds (world space)
-        newY = Math.min(Math.max(newY, bounds[2]), bounds[3]);
-
-        // Update plane
+        // Set new origin for the axial plane (y-axis moves)
         coronal_Plane.setOrigin(planeOrigin[0], newY, planeOrigin[2]);
 
         // Update HTML slider (make sure it's an int)
@@ -516,6 +526,8 @@ function updateSliderRanges(vtkImage){
 // UPDATE SLICE VIEWS LOGIC -------------------------------------------------------------------
 function updateSliceViews(vtkImage){
 
+    console.log("NEW VOLUME, UPDATING SLICE VIEWS");
+
     const axial_container = document.getElementById('AxialSlice');
     const sagittal_container = document.getElementById('SagittalSlice');
     const coronal_container = document.getElementById('CoronalSlice');
@@ -538,10 +550,6 @@ function updateSliceViews(vtkImage){
     axial_mapper.setSlicePlane(axial_Plane);
     sagittal_mapper.setSlicePlane(sagittal_Plane);
     coronal_mapper.setSlicePlane(coronal_Plane);
-
-    axial_actor.modified();
-    sagittal_mapper.modified();
-    coronal_mapper.modified();
 
     // Pass Data from new VTK Image to Mappers
     axial_mapper.setInputData(vtkImage);
@@ -675,18 +683,32 @@ function initializeSliceViews(vtkImage){
     sagittal_mapper = vtk.Rendering.Core.vtkImageResliceMapper.newInstance();
     coronal_mapper = vtk.Rendering.Core.vtkImageResliceMapper.newInstance();
 
+    // Normal Plane Orientations (For CT adjustments)
+    const direction = vtkImage.getDirection();
+    const axialNormal = [direction[6], direction[7], direction[8]];
+    const sagittalNormal = [direction[3], direction[4], direction[5]];
+    const coronalNormal = [direction[0], direction[1], direction[2]];
+
     // Slice Planes
     axial_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
     axial_Plane.setNormal(0, 0, 1);
+    // axial_Plane.setNormal(axialNormal);
+    // axial_Plane.setOrigin(vtkImage.getOrigin());
     axial_Plane.setOrigin(vtkImage.getCenter());
 
     sagittal_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
     sagittal_Plane.setNormal(1, 0, 0);
+    // sagittal_Plane.setNormal(sagittalNormal);
+    // sagittal_Plane.setOrigin(vtkImage.getOrigin());
     sagittal_Plane.setOrigin(vtkImage.getCenter());
 
     coronal_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
     coronal_Plane.setNormal(0, 1, 0);
+    // coronal_Plane.setNormal(coronalNormal);
+    // coronal_Plane.setOrigin(vtkImage.getOrigin());
     coronal_Plane.setOrigin(vtkImage.getCenter());
+
+    // console.log("GOT HERE");
 
     // Create Slice Actors
     axial_actor = vtk.Rendering.Core.vtkImageSlice.newInstance();
@@ -706,6 +728,11 @@ function initializeSliceViews(vtkImage){
     axial_mapper.setSlicePlane(axial_Plane);
     sagittal_mapper.setSlicePlane(sagittal_Plane);
     coronal_mapper.setSlicePlane(coronal_Plane);
+
+    // Set Slab Mode
+    // axial_mapper.setSlabType(0);
+    // sagittal_mapper.setSlabType(0);
+    // coronal_mapper.setSlabType(0);
 
     // Add Actors to renderers
     axial_renderer.addActor(axial_actor);
@@ -786,7 +813,7 @@ function initializeSliceViews(vtkImage){
 
     loaded_new = false;
     console.log("Rendered the slice windows!");
-    updateSliceViews(vtkImage);
+    updateSliderRanges(vtkImage);
 
 }
 
@@ -805,14 +832,13 @@ function renderVolume(itkImage){
     vtkImage.setOrigin(itkImage.origin[0], itkImage.origin[1], itkImage.origin[2]);
     vtkImage.getPointData().setScalars(dataArray);
 
-    console.log(vtkImage.getSpacing());       // Check for 0 or negative spacing
-    console.log(vtkImage.getDirection());     // Should be identity or orthogonal matrix
-    console.log(vtkImage.getOrigin());        // Should be numeric
-    console.log(vtkImage.getBounds());
-    console.log(vtkImage.getDimensions());
-    console.log(vtkImage.getExtent());
-    console.log('Scalars: ', vtkImage.getPointData().getScalars());
-
+    // console.log(vtkImage.getSpacing());       // Check for 0 or negative spacing
+    // console.log(vtkImage.getDirection());     // Should be identity or orthogonal matrix
+    // console.log(vtkImage.getOrigin());        // Should be numeric
+    // console.log(vtkImage.getBounds());
+    // console.log(vtkImage.getDimensions());
+    // console.log(vtkImage.getExtent());
+    // console.log('Scalars: ', vtkImage.getPointData().getScalars());
 
     const volumeMapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
     volumeMapper.setInputData(vtkImage);
