@@ -95,8 +95,6 @@ window.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // console.log('Files selected: ', dicomFiles);
-
         let itkImage = null;
 
         try{
@@ -135,8 +133,6 @@ window.addEventListener('DOMContentLoaded', () => {
             }
             
             loaded_new = true;
-
-            // console.log(itkImage.getExtent());
 
             // Render volume.
             renderVolume(itkImage);
@@ -210,19 +206,19 @@ window.addEventListener('DOMContentLoaded', () => {
         if (file.name.endsWith('.dcm') || file.name.endsWith('.dicom')){
             // Nothing yet, focusing on 3D DICOM Volumes first.
 
-                if (!(file instanceof File)){
-                    throw new TypeError("Expected a File object");
-                }
+            if (!(file instanceof File)){
+                throw new TypeError("Expected a File object");
+            }
 
-                // Read in data into image variable, itkImage reference.
-                const arrayBuffer = await file.arrayBuffer();
-                const { image } = await itk.readImageArrayBuffer(null, arrayBuffer, file.name);
-                itkImage = image;
+            // Read in data into image variable, itkImage reference.
+            const arrayBuffer = await file.arrayBuffer();
+            const { image } = await itk.readImageArrayBuffer(null, arrayBuffer, file.name);
+            itkImage = image;
 
-                loaded_new = true;
+            loaded_new = true;
 
-                // Render the volume.
-                renderVolume(itkImage);
+            // Render the volume.
+            renderVolume(itkImage);
         }
 
         
@@ -435,29 +431,37 @@ window.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
 
         const spacing = vtkImage.getSpacing();     // Spacing Values: [sx, sy, sz].
-        const origin = vtkImage.getOrigin();       // Origin Coordingates: [ox, oy, oz].
-        const extent = vtkImage.getExtent();       // Min/Max Values: [xmin, xmax, ymin, ymax, zmin, zmax].
+        const origin = vtkImage.getOrigin();       // Origin Coordinates: [ox, oy, oz].
+        const extent = vtkImage.getExtent();       // Index Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
+        const bounds = vtkImage.getBounds();       // Image Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
         const planeOrigin = sagittal_Plane.getOrigin();
 
-        // Current index along X
+        // Current index along X (sagittal).
         let currentIdx = Math.round((planeOrigin[0] - origin[0]) / spacing[0]);
 
         const delta = Math.sign(event.deltaY);
-        const minIdx = extent[0]; // xmin value.
-        const maxIdx = extent[1]; // xmax value.
+        const minIdx = extent[0]; // xmin
+        const maxIdx = extent[1]; // xmax
 
-        // Clamp new index
+        // Compute new index and clamp.
         let newIdx = Math.min(Math.max(currentIdx + delta, minIdx), maxIdx);
+
+        // Compute world coordinate X position for the new slice.
         let newX = origin[0] + newIdx * spacing[0];
 
-        // Set new origin for the axial plane (x-axis moves)
+        // Clamp newX to data bounds (world space)
+        // Take the max of the new position and the minimum bound.
+        // Then take the minimum of the new position and the maximum bound.
+        newX = Math.min(Math.max(newX, bounds[0]), bounds[1]);
+
+        // Update plane.
         sagittal_Plane.setOrigin(newX, planeOrigin[1], planeOrigin[2]);
 
-        // Update HTML slider (make sure it's an int)
+        // Update HTML slider (make sure it's an int).
         const slider = document.getElementById('sa_slider');
         if (slider) slider.value = newIdx.toString();
 
-        // Trigger render
+        // Trigger render.
         requestAnimationFrame(() => {
             sagittal_renderer.resetCamera();
             sagittal_openGLRenderWindow.modified();
@@ -472,35 +476,44 @@ window.addEventListener('DOMContentLoaded', () => {
         event.preventDefault();
 
         const spacing = vtkImage.getSpacing();     // Spacing Values: [sx, sy, sz].
-        const origin = vtkImage.getOrigin();       // Origin Coordingates: [ox, oy, oz].
-        const extent = vtkImage.getExtent();       // Min/Max Values: [xmin, xmax, ymin, ymax, zmin, zmax].
+        const origin = vtkImage.getOrigin();       // Origin Coordinates: [ox, oy, oz].
+        const extent = vtkImage.getExtent();       // Index Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
+        const bounds = vtkImage.getBounds();       // Image Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
         const planeOrigin = coronal_Plane.getOrigin();
 
-        // Current index along X
+        // Current index along Y (coronal).
         let currentIdx = Math.round((planeOrigin[1] - origin[1]) / spacing[1]);
 
         const delta = Math.sign(event.deltaY);
-        const minIdx = extent[2]; // ymin value.
-        const maxIdx = extent[3]; // ymax value.
+        const minIdx = extent[2]; // ymin
+        const maxIdx = extent[3]; // ymax
 
-        // Clamp new index
+        // Compute new index and clamp.
         let newIdx = Math.min(Math.max(currentIdx + delta, minIdx), maxIdx);
+
+        // Compute world coordinate Y position for the new slice.
         let newY = origin[1] + newIdx * spacing[1];
 
-        // Set new origin for the axial plane (y-axis moves)
-        coronal_Plane.setOrigin(planeOrigin[0], newY, planeOrigin[2]);
+        // Clamp newY to data bounds (world space)
+        // Take the max of the new position and the minimum bound.
+        // Then take the minimum of the new position and the maximum bound.
+        newY = Math.min(Math.max(newY, bounds[2]), bounds[3]);
 
-        // Update HTML slider (make sure it's an int)
+        // Update plane.
+        coronal_Plane.setOrigin(planeOrigin[0], newY , planeOrigin[2]);
+
+        // Update HTML slider (make sure it's an int).
         const slider = document.getElementById('cor_slider');
         if (slider) slider.value = newIdx.toString();
 
-        // Trigger render
+        // Trigger render.
         requestAnimationFrame(() => {
             coronal_renderer.resetCamera();
             coronal_openGLRenderWindow.modified();
             coronal_renderWindow.render();
             genericRenderWindow.getRenderWindow().render()
         });
+
 
     });
 
