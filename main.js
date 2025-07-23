@@ -5,6 +5,16 @@ let vtkImage = null;
 let genericRenderWindow = null;
 let renderWindow = null;
 
+// 2D View Globals
+let frameCount = null;
+let frameIndex = null;
+let isPlaying = false;
+let fps = 10;
+let animationInterval = null;
+let ctx = null;
+let canvas = null;
+let imageObjects = null;
+
 // Volume View Globals
 let renderer = null;
 let volumeActor = null;
@@ -39,12 +49,15 @@ let axial_Plane = null;
 let sagittal_Plane = null;
 let coronal_Plane = null;
 
+
+
+// DOM Load confirmation and website initialization.
 window.addEventListener('DOMContentLoaded', () => {
 
     // RENDERER CONTAINER
     const containerRef = document.getElementById('vtk-vol_container');
 
-    if(!containerRef || !window.vtk || !window.itk){
+    if(!containerRef || !window.vtk || !window.itk || !window.dcmjs){
         console.error('Elements or libraries not loaded.');
         return;
     }
@@ -73,37 +86,138 @@ window.addEventListener('DOMContentLoaded', () => {
         renderWindow.render();
     });
     
-    // MULTI-DICOM SERIES FILE INPUT LOGIC ------------------------------------------------------
+    
+
+    // SINGLE FILE INPUT LOGIC (2D DICOM) -------------------------------------------------------
+    const singleFileInput = document.getElementById('twodInput');
+
+    if(!singleFileInput){
+        console.warn('File input not found');
+        return;
+    }
+
+    singleFileInput.addEventListener('change', async (event) => {
+        
+        // Initialize 2D environment.
+        disableThreeD();
+        pause();
+        document.getElementById('twoD-controls').style.display = "flex";
+        
+        // If there is already a canvas, delete it before adding a new one.
+        if (document.getElementById('twoD-canvas') != null) document.getElementById('twoD-canvas').remove();
+        
+        const file = event.target.files[0];
+
+        if(!(file.name.endsWith('.dicom') || file.name.endsWith('.dcm'))){
+            alert(`Please select a valid file: .dcm or .dicom file.`);
+            return;
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        
+        // Start loading DICOM.
+        const dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
+        const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+
+        // Start at frame 0.
+        frameIndex = 0;
+        const pixelDataArrayBuffers = dataset.PixelData;
+
+        if(!pixelDataArrayBuffers || pixelDataArrayBuffers.length === 0){
+            console.error('No PixelData found.');
+            return;
+        }
+        
+        // Set canvas and DICOM info.
+        frameCount = pixelDataArrayBuffers.length;
+        canvas = document.createElement('canvas');
+        canvas.id = "twoD-canvas";
+        
+        // Add in canvas and hide 3D renderer.
+        document.getElementById('twoD-render-area').insertBefore(canvas, document.getElementById('twoD-controls'));
+        document.getElementById('render-area').style.display = "none";
+        document.getElementById('twoD-render-area').style.display = "flex";
+        ctx = canvas.getContext('2d');
+
+        imageObjects = new Array(frameCount);
+        
+        // Load image data into a URL JPEG blob.
+        for(let i = 0; i < frameCount; i++){
+            const frameBuffer = pixelDataArrayBuffers[i];
+            const blob = new Blob([frameBuffer], { type: 'image/jpeg' });
+            const url = URL.createObjectURL(blob);
+
+            // Add images into array for storage.
+            const img = new Image();
+            img.src = url;
+            imageObjects[i] = img;
+        }
+
+        // Ensure all images are loaded correctly.
+        let allLoaded = Promise.all(imageObjects.map(img => {
+            return new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+            });
+        }));
+
+        // Once all loaded.
+        allLoaded.then(() => {
+            // Assign canvas dimentsions and max slider value.
+            canvas.width = imageObjects[0].width;
+            canvas.height = imageObjects[0].height;
+            document.getElementById('twoD-slider').max = frameCount - 1;
+
+            // Start playback.
+            play();
+
+        });
+
+
+    });
+
+    // 2D DICOM PLAY/PAUSE BUTTON LOGIC ----------------------------------------------------------
+    document.getElementById('twoD-play-pause').addEventListener("click", () => {
+        if (isPlaying) pause();
+        else play();
+    });
+
+    // MULTI-DICOM SERIES FILE INPUT LOGIC (3D DICOM) --------------------------------------------
     const dicomInput = document.getElementById('dicomInput');
 
-    if(!dicomInput){
+    if (!dicomInput) {
         console.warn('Directory not found');
+        return;
     }
 
     dicomInput.addEventListener('change', async (event) => {
         // Set Disp Volume Checkbox to checked and slices box to not checked
         document.getElementById('dispVolBox').checked = true;
         document.getElementById('dispSlicesBox').checked = false;
+        document.getElementById('vtk-vol_container').style.display = "block";
+        disableTwoD();
+        console.log("Disabled 2D");
+        document.getElementById('render-area').style.display = "flex";
 
         // Grab files from directory.
         const files = Array.from(event.target.files);
         const dicomFiles = Array.from(files).filter((file) => file instanceof File && file.name.toLowerCase().endsWith('.dcm'));
 
         // Send warning if no files.
-        if (dicomFiles.length === 0){
+        if (dicomFiles.length === 0) {
             alert('No DICOM files found in the selected folder.');
             return;
         }
 
         let itkImage = null;
 
-        try{
+        try {
 
             // If there is only 1 DICOM then only use readImage instead of the series reader.
-            if (dicomFiles.length == 1){
+            if (dicomFiles.length == 1) {
                 const file = dicomFiles[0];
 
-                if (!(file instanceof File)){
+                if (!(file instanceof File)) {
                     throw new TypeError("Expected a File object");
                 }
 
@@ -111,14 +225,14 @@ window.addEventListener('DOMContentLoaded', () => {
                 const arrayBuffer = await file.arrayBuffer();
                 const { image } = await itk.readImageArrayBuffer(null, arrayBuffer, file.name);
                 itkImage = image;
-                
+
             }
 
-            else{
-                
+            else {
+
                 // Check if every file is valid in the series.
                 const allFilesAreValid = dicomFiles.every(f => f instanceof File);
-                if(!allFilesAreValid){
+                if (!allFilesAreValid) {
                     throw new TypeError("All fules must be File objects");
                 }
 
@@ -128,10 +242,10 @@ window.addEventListener('DOMContentLoaded', () => {
             }
 
             // Ensure that image has data.
-            if (!itkImage || !itkImage.data){
+            if (!itkImage || !itkImage.data) {
                 throw new Error('Parsed image is null or missing data');
             }
-            
+
             loaded_new = true;
 
             // Render volume.
@@ -139,7 +253,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
         }
 
-        catch (error){
+        catch (error) {
             console.error('Error loading DICOM series:', error);
             alert('Failed to load DICOM folder. Ensure it contains all valid DICOM series.');
         }
@@ -162,8 +276,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     });
 
-
-    // SINGLE FILE INPUT LOGIC ------------------------------------------------------------------
+    // SINGLE FILE INPUT LOGIC (NRRD/3D DICOM) --------------------------------------------------
     const fileInput = document.getElementById('fileInput');
     
     if(!fileInput){
@@ -175,7 +288,10 @@ window.addEventListener('DOMContentLoaded', () => {
         // Set Disp Volume Checkbox to checked and slices box to not checked
         document.getElementById('dispVolBox').checked = true;
         document.getElementById('dispSlicesBox').checked = false;
-        
+        document.getElementById('vtk-vol_container').style.display = "block";
+        disableTwoD();
+        document.getElementById('render-area').style.display = "flex";
+
         const file = event.target.files[0];
 
         // Alert user.
@@ -204,12 +320,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // SINGLE DICOM FILE LOGIC --------------------------------------------------------------
         if (file.name.endsWith('.dcm') || file.name.endsWith('.dicom')){
-            // Nothing yet, focusing on 3D DICOM Volumes first.
+
+            console.log("HERE");
 
             if (!(file instanceof File)){
                 throw new TypeError("Expected a File object");
             }
 
+            // 3D Volume
             // Read in data into image variable, itkImage reference.
             const arrayBuffer = await file.arrayBuffer();
             const { image } = await itk.readImageArrayBuffer(null, arrayBuffer, file.name);
@@ -221,7 +339,6 @@ window.addEventListener('DOMContentLoaded', () => {
             renderVolume(itkImage);
         }
 
-        
         const resizeObserver = new ResizeObserver(() => {
             // Reset cameras and rerender.
             genericRenderWindow.resize();
@@ -304,7 +421,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // CHECKBOX LOGIC --------------------------------------------------------------------------
     
-    // Slices Checkbox logic.
+    // Slices Checkbox logic
     document.getElementById('dispSlicesBox').addEventListener('click', () => {
         // Grab the display checkbox.
         const displayBox = document.getElementById('dispSlicesBox');
@@ -324,7 +441,7 @@ window.addEventListener('DOMContentLoaded', () => {
         genericRenderWindow.getRenderWindow().render();  
     });
 
-    // Volume Checkbox logic.
+    // Volume Checkbox logic
     document.getElementById('dispVolBox').addEventListener('click', () => {
         // Grab the volume checkbox.
         const volBox = document.getElementById('dispVolBox');
@@ -342,7 +459,7 @@ window.addEventListener('DOMContentLoaded', () => {
     
     // SLIDER LOGIC -----------------------------------------------------------------------------
 
-    // Axial Slider logic.
+    // Axial Slider logic
     document.getElementById('ax_slider').addEventListener('input', (event) => {
         const spacing = vtkImage.getSpacing();
         const origin = vtkImage.getOrigin();
@@ -357,7 +474,7 @@ window.addEventListener('DOMContentLoaded', () => {
         
     });
 
-    // Sagittal Slider logic.
+    // Sagittal Slider logic
     document.getElementById('sa_slider').addEventListener('input', (event) => {
         const spacing = vtkImage.getSpacing();
         const origin = vtkImage.getOrigin();
@@ -372,7 +489,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     });
 
-    // Coronal Slider logic.
+    // Coronal Slider logic
     document.getElementById('cor_slider').addEventListener('input', (event) => {
         const spacing = vtkImage.getSpacing();
         const origin = vtkImage.getOrigin();
@@ -385,6 +502,14 @@ window.addEventListener('DOMContentLoaded', () => {
             genericRenderWindow.getRenderWindow().render();
         });
 
+    });
+
+    // 2D DICOM Video Slider Logic
+    document.getElementById('twoD-slider').addEventListener('input', (event) => {
+        pause();
+        frameIndex = parseInt(event.target.value);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(imageObjects[frameIndex], 0, 0);
     });
 
 
@@ -519,6 +644,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
 });
 
+
+// GLOABL FUNCTIONS ---------------------------------------------------------------------------
 
 // UPDATE SLIDER RANGES LOGIC -----------------------------------------------------------------
 function updateSliderRanges(vtkImage){
@@ -697,10 +824,10 @@ function initializeSliceViews(vtkImage){
     coronal_mapper = vtk.Rendering.Core.vtkImageResliceMapper.newInstance();
 
     // Normal Plane Orientations (For CT adjustments)
-    const direction = vtkImage.getDirection();
-    const axialNormal = [direction[6], direction[7], direction[8]];
-    const sagittalNormal = [direction[3], direction[4], direction[5]];
-    const coronalNormal = [direction[0], direction[1], direction[2]];
+    // const direction = vtkImage.getDirection();
+    // const axialNormal = [direction[6], direction[7], direction[8]];
+    // const sagittalNormal = [direction[3], direction[4], direction[5]];
+    // const coronalNormal = [direction[0], direction[1], direction[2]];
 
     // Slice Planes
     axial_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
@@ -830,6 +957,7 @@ function initializeSliceViews(vtkImage){
 
 }
 
+// RENDER VOLUME LOGIC ------------------------------------------------------------------------
 function renderVolume(itkImage){
     
     vtkImage = vtk.Common.DataModel.vtkImageData.newInstance();
@@ -887,3 +1015,52 @@ function renderVolume(itkImage){
     renderWindow.render();
 }
 
+// 2D START PLAYBACK LOGIC --------------------------------------------------------------------
+function play() {
+    isPlaying = true;
+    document.getElementById('twoD-play-pause').textContent = "Pause";
+
+    animationInterval = setInterval(() => {
+        // Clear the canvas.
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Draw a stored image.
+        ctx.drawImage(imageObjects[frameIndex], 0, 0);
+        // Increment frameIndex.
+        frameIndex = (frameIndex + 1) % frameCount;
+
+        // Adjust slider position.
+        document.getElementById('twoD-slider').value = frameIndex;
+    }, 1000 / fps);
+}
+
+// 2D HALT PLAYBACK LOGIC ----------------------------------------------------------------------
+function pause() {
+    isPlaying = false;
+    document.getElementById('twoD-play-pause').textContent = "Play";
+
+    if (animationInterval) {
+        clearInterval(animationInterval);
+        animationInterval = null;
+    }
+}
+
+// 2D DISABLE LOGIC ----------------------------------------------------------------------------
+function disableTwoD(){
+    if (document.getElementById('twoD-canvas') != null){
+        pause();
+        isPlaying = false;
+        animationInterval = null;
+        ctx = null;
+        canvas = null;
+        imageObjects = null;
+        document.getElementById('twoD-canvas').remove();
+        document.getElementById('twoD-controls').style.display = "none";
+        
+    }
+}
+
+// 3D DISABLE LOGIC ----------------------------------------------------------------------------
+function disableThreeD(){
+    document.getElementById('vtk-vol_container').style.display = "none";
+    document.getElementById('sliceRow').style.display = "none";
+}

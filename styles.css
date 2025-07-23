@@ -32,12 +32,11 @@ body {
     margin-bottom: 10px;
 }
 
-#vtk-vol_container {
+#vtk-vol_container{
     flex: 1;
     background: rgb(8, 79, 111);
     position: relative;
     z-index: 1;
-
 }
 
 #render-area{
@@ -111,4 +110,37 @@ body {
 #coronalSliceLabel{
     background-color: green;
     width: 100%;
+}
+
+#twoD-render-area{
+    flex: 1 1 auto;
+    background: rgb(9, 85, 120);
+    display: none;
+    flex-direction: column;
+    height: 100vh;
+    min-width: 0;
+    gap: 0;
+    padding: 0;
+}
+
+#twoD-render-area canvas {
+    max-width: 85%;
+    height: auto;
+    border: 1px solid #ccc;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    margin-bottom: 10px;
+    gap: 0;
+    padding: 0;
+}
+
+#twoD-controls{
+    display: flex;
+    height: 20px;
+    width: 100%;
+    background: rgb(9, 85, 120);
+    flex-direction: row;
+    justify-content: left;
+    gap: 0;
+    padding: 0;
+
 }

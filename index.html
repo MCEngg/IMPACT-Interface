@@ -3,7 +3,7 @@
     
     <head>
         <meta charset="UTF-8"/>
-        <meta name="viewport" content="width=device-width", initial-scale="1.0"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <link rel = "icon" href = "RendererIcon.ico" />
         <title> NIDUS Renderer </title>
         
@@ -20,7 +20,16 @@
             <div id="controls">
                 <!-- Toolbar Details -->
                 <div id="toolbar">
-                    <label for="fileInput">Select NRRD/DICOM:</label>
+
+                    <b>2D File Operations:</b>
+                    <br>
+                    <label for="twodInput">Select 2D Temporal DICOM:</label>
+                    <input type="file" id="twodInput" accept=".dcm,.dicom" />
+                    <br>
+                    <br>
+                    <b>3D File Operations:</b>
+                    <br>
+                    <label for="fileInput">Select NRRD/3D DICOM Slice:</label>
                     <input type="file" id="fileInput" accept=".nrrd,.dcm,.dicom" />
                     <label for="dicomInput">Select DICOM Directory:</label>
                     <input type="file" id="dicomInput" webkitdirectory multiple />
@@ -59,13 +68,20 @@
                 </div>
             </div>
 
-            
-            <!-- Rendering Area -->
-            <div id="render-area">
-                <!-- VTK Container -->
-                <div id="vtk-vol_container">
-                    
+            <!-- 2D Rendering Area -->
+            <div id="twoD-render-area">
+
+                <div id="twoD-controls">
+                    <button id="twoD-play-pause">Play/Pause</button>
+                    <input type="range" id="twoD-slider" style="width: 100%;"/>
                 </div>
+            </div>
+
+            <!-- 3D Rendering Area -->
+            <div id="render-area">
+
+                <!-- VTK Volume Container -->
+                <div id="vtk-vol_container"></div>
                 
                 <!-- Slices -->
                 <div id="sliceRow" style="display: none;">
@@ -85,13 +101,16 @@
                 </div>
             </div>
 
-            <!-- VTK & ITK Import Lines -->
-            <script type="text/javascript" src="https://unpkg.com/vtk.js@latest/vtk.js"></script>
-            <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/itk-wasm@1.0.0-b.106/dist/umd/itk-wasm.min.js"></script>
-
-            <!-- Main Script Import -->
-            <script src="./main.js"></script>
+            
         </div>
+
+        <!-- VTK, ITK, DCMJS Import Lines -->
+        <script type="text/javascript" src="https://unpkg.com/vtk.js@latest/vtk.js"></script>
+        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/itk-wasm@latest/dist/umd/itk-wasm.min.js"></script>
+        <script type="text/javascript" src="https://unpkg.com/dcmjs@latest/build/dcmjs.js"></script>
+
+        <!-- Main Script Import -->
+        <script src="./main.js"></script>
     </body>
 
 </html>
