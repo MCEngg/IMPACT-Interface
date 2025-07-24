@@ -1,0 +1,55 @@
+export const globals = {
+    
+    // Main Render Window Globals.
+    genericRenderWindow: null,
+    renderWindow: null,
+
+    // 3D View Globals.
+    renderer: null,
+    volumeActor: null,
+    itkImage: null,
+    vtkImage: null,
+
+    // 2D View Globals.
+    frameCount: null,
+    frameIndex: null,
+    isPlaying: false,
+    fps: 10,
+    animationInterval: null,
+    ctx: null,
+    canvas: null,
+    imageObjects: null,
+    is2dMode: false,
+
+    // Slice Rendering Globals.
+    loaded_new: false,
+    isSliceMode: false,
+    
+    axial_renderer: null,
+    sagittal_renderer: null,
+    coronal_renderer: null,
+
+    axial_renderWindow: null,
+    sagittal_renderWindow: null,
+    coronal_renderWindow: null,
+
+    axial_openGLRenderWindow: null,
+    sagittal_openGLRenderWindow: null,
+    coronal_openGLRenderWindow: null,
+
+    axial_actor: null,
+    sagittal_actor: null,
+    coronal_actor: null,
+
+    axial_mapper: null,
+    sagittal_mapper: null,
+    coronal_mapper: null,
+
+    axial_interactor: null,
+    sagittal_interactor: null,
+    coronal_interactor: null,
+
+    axial_Plane: null,
+    sagittal_Plane: null,
+    coronal_Plane: null,
+}
