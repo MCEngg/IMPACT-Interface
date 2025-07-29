@@ -1,5 +1,43 @@
 import { globals } from "./globals.js";
 
+// const manipulatorList = {
+//     Pan: vtk.Interaction.Manipulators.vtkMouseCameraTrackballPanManipulator,
+//     Zoom: vtk.Interaction.Manipulators.vtkMouseCameraTrackballZoomManipulator,
+
+// }
+
+const buttonMap = {
+    leftButton: { button: 1 },
+    middleButton: { button: 2 },
+    rightButton: { button: 3 },
+    shiftLeftButton: { button: 1, shift: true },
+    shiftMiddleButton: { button: 2, shift: true },
+    shiftRightButton: { button: 3, shift: true },
+    controlLeftButton: { button: 1, control: true },
+    controlMiddleButton: { button: 2, control: true },
+    controlRightButton: { button: 3, control: true },
+    altLeftButton: { button: 1, alt: true },
+    altMiddleButton: { button: 2, alt: true },
+    altRightButton: { button: 3, alt: true },
+    scrollMiddleButton: { scrollEnabled: true, dragEnabled: false },
+    shiftScrollMiddleButton: {
+        scrollEnabled: true,
+        dragEnabled: false,
+        shift: true,
+    },
+    controlScrollMiddleButton: {
+        scrollEnabled: true,
+        dragEnabled: false,
+        control: true,
+    },
+    altScrollMiddleButton: {
+        scrollEnabled: true,
+        dragEnabled: false,
+        alt: true,
+    }
+
+};
+
 // SLICE VIEW INITIALIZATION LOGIC ------------------------------------------------------------
 export function initializeSliceViews(vtkImage) {
 
@@ -50,23 +88,15 @@ export function initializeSliceViews(vtkImage) {
     // Slice Planes
     globals.axial_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
     globals.axial_Plane.setNormal(0, 0, 1);
-    // globals.axial_Plane.setNormal(axialNormal);
-    // globals.axial_Plane.setOrigin(vtkImage.getOrigin());
     globals.axial_Plane.setOrigin(vtkImage.getCenter());
 
     globals.sagittal_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
     globals.sagittal_Plane.setNormal(1, 0, 0);
-    // globals.sagittal_Plane.setNormal(sagittalNormal);
-    // globals.sagittal_Plane.setOrigin(vtkImage.getOrigin());
     globals.sagittal_Plane.setOrigin(vtkImage.getCenter());
 
     globals.coronal_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
     globals.coronal_Plane.setNormal(0, 1, 0);
-    // globals.coronal_Plane.setNormal(coronalNormal);
-    // globals.coronal_Plane.setOrigin(vtkImage.getOrigin());
     globals.coronal_Plane.setOrigin(vtkImage.getCenter());
-
-    // console.log("GOT HERE");
 
     // Create Slice Actors
     globals.axial_actor = vtk.Rendering.Core.vtkImageSlice.newInstance();
@@ -167,7 +197,7 @@ export function initializeSliceViews(vtkImage) {
         globals.axial_renderWindow.render();
         globals.sagittal_renderWindow.render();
         globals.coronal_renderWindow.render();
-    })
+    });
 
     globals.loaded_new = false;
     console.log("Rendered the slice windows!");
@@ -277,6 +307,10 @@ export function updateSliceViews(vtkImage) {
     globals.coronal_interactor.initialize();
     globals.coronal_interactor.bindEvents(coronal_container);
 
+    [globals.axial_interactor, globals.sagittal_interactor, globals.coronal_interactor].forEach(element => {
+        addManipulators(element);
+    });
+
     // Reset Camera positions.
     globals.axial_renderer.resetCamera();
     globals.sagittal_renderer.resetCamera();
@@ -329,4 +363,18 @@ export function closeSliceViews(vol_container, slice_container, sliders){
     slice_container.style.display = 'none';
 
     console.log("isSliceMode: ", globals.isSliceMode)
+}
+
+export function addManipulators(spec_interactor){
+    const manipulatorStyle = vtk.Interaction.Style.vtkInteractorStyleManipulator.newInstance();
+
+    // Add Pan manipulator on scroll wheel click.
+    manipulatorStyle.addMouseManipulator(vtk.Interaction.Manipulators.MouseCameraTrackballPanManipulator.newInstance({ middleButton }));
+    
+    // Add Zoom to scroll wheel.
+    manipulatorStyle.addMouseManipulator(vtk.Interaction.Manipulators.MouseCameraTrackballZoomManipulator.newInstance({ shiftScrollMiddleButton }));
+
+    // Attach to interactor
+    spec_interactor.setInteractorStyle(manipulatorStyle);
+
 }

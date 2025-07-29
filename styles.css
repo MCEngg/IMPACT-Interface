@@ -1,3 +1,4 @@
+/* Main Styles */
 body {
     margin: 0;
     padding: 0;
@@ -15,6 +16,7 @@ body {
     height: 100vh;
 }
 
+/* Control Styles */
 #controls{
     flex: 0 0 250px;
     background: rgb(10, 54, 74);
@@ -32,14 +34,8 @@ body {
     margin-bottom: 10px;
 }
 
-#vtk-vol_container{
-    flex: 1;
-    background: rgb(8, 79, 111);
-    position: relative;
-    z-index: 1;
-}
-
-#render-area{
+/* Main Render Area Styles */
+#render-area {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
@@ -47,13 +43,21 @@ body {
     min-width: 0;
 }
 
-#sliceRow{
-    display: flex;
+/* 3D Render Styles */
+#vtk-vol_container{
+    flex: 1;
+    background: rgb(8, 79, 111);
+    position: relative;
+    z-index: 1;
+}
+
+/* Slice Styles */
+#sliceRow {
+    display: grid;
+    grid-template-columns: auto auto auto;
     height: 50%;
-    width: 100%;
+    /* width: 100%; */
     background: rgb(9, 85, 120);
-    flex-direction: row;
-    justify-content: space-evenly;
     z-index: 2;
     gap: 0;
     padding: 0;
@@ -62,18 +66,32 @@ body {
     mask-border-width: 1px;
 }
 
-.slice-view{
+.slice-view {
     flex: 1;
     border: 1px solid rgb(9, 85, 120);
     box-sizing: border-box;
     position: relative;
     width: 33%;
     min-height: 100%;
-    /* padding: 0;
-    margin: 0; */
 }
 
-#AxialSlice{
+.sliceColumn {
+    display: grid;
+    grid-template-rows: auto auto auto;
+    gap: 0;
+    padding: 0;
+    margin: 0;
+}
+
+.sliceLabel {
+    gap: 0;
+    padding: 0;
+    margin: 0;
+    font-size: 100%;
+    width: 100%;
+}
+
+#AxialSlice {
     background: red;
     width: 100%;
     height: 100%;
@@ -81,7 +99,7 @@ body {
     margin: 0;
 }
 
-#SagittalSlice{
+#SagittalSlice {
     background: yellow;
     width: 100%;
     height: 100%;
@@ -89,7 +107,7 @@ body {
     margin: 0;
 }
 
-#CoronalSlice{
+#CoronalSlice {
     background: green;
     width: 100%;
     height: 100%;
@@ -97,27 +115,28 @@ body {
     margin: 0;
 }
 
-#axialSliceLabel{
+#axialSliceLabel {
     background-color: red;
     width: 100%;
 }
 
-#sagittalSliceLabel{
+#sagittalSliceLabel {
     background-color: yellow;
     width: 100%;
 }
 
-#coronalSliceLabel{
+#coronalSliceLabel {
     background-color: green;
     width: 100%;
 }
 
-#twoD-render-area{
+/* 2D Render Styles */
+#twoD-render-area {
     flex: 1 1 auto;
     background: rgb(9, 85, 120);
     display: none;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
     min-width: 0;
     gap: 0;
     padding: 0;
@@ -125,7 +144,7 @@ body {
 
 #twoD-render-area canvas {
     max-width: 80%;
-    height: auto;
+    height: 95%;
     border: 1px solid #ccc;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     margin-bottom: 10px;
@@ -143,4 +162,8 @@ body {
     gap: 0;
     padding: 0;
 
+}
+
+#twoD-play-pause{
+    width: 60px;
 }

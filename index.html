@@ -29,7 +29,7 @@
                     <br>
                     <b>3D File Operations:</b>
                     <br>
-                    <label for="fileInput">Select NRRD/3D DICOM Slice:</label>
+                    <label for="fileInput">Select 3D DICOM Slice:</label>
                     <input type="file" id="fileInput" accept=".nrrd,.dcm,.dicom" />
                     <label for="dicomInput">Select DICOM Directory:</label>
                     <input type="file" id="dicomInput" webkitdirectory multiple />
@@ -85,16 +85,16 @@
                 
                 <!-- Slices -->
                 <div id="sliceRow" style="display: none;">
-                    <div>
-                        <p id="axialSliceLabel">Axial View</p>
+                    <div class="sliceColumn">
+                        <p class="sliceLabel" id="axialSliceLabel">Axial View</p>
                         <div class='slice-view' id="AxialSlice"></div>
                     </div>
-                    <div>
-                        <p id="sagittalSliceLabel">Sagittal View</p>
+                    <div class="sliceColumn">
+                        <p class="sliceLabel" id="sagittalSliceLabel">Sagittal View</p>
                         <div class='slice-view' id="SagittalSlice"></div>
                     </div>
-                    <div>
-                        <p id="coronalSliceLabel">Coronal View</p>
+                    <div class="sliceColumn">
+                        <p class="sliceLabel" id="coronalSliceLabel">Coronal View</p>
                         <div class='slice-view' id="CoronalSlice"></div>
                     </div>
                     
@@ -103,10 +103,11 @@
 
             
         </div>
-
-        <!-- VTK, ITK, DCMJS Import Lines -->
+        
+        <!-- VTK Import CDN -->
         <script type="text/javascript" src="https://unpkg.com/vtk.js@latest/vtk.js"></script>
-        <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/itk-wasm@latest/dist/umd/itk-wasm.min.js"></script>
+
+        <!-- DCMJS Import CDN -->
         <script type="text/javascript" src="https://unpkg.com/dcmjs@latest/build/dcmjs.js"></script>
 
         <!-- Main Script Import -->

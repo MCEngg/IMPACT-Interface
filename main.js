@@ -10,13 +10,17 @@ import { renderVolume, disableThreeD } from './volumeRendering.js';
 // Slice View Globals.
 import { closeSliceViews, initializeSliceViews, updateSliceViews } from './sliceRendering.js';
 
+// ITK Import
+import { readImageDicomFileSeries } from 'https://cdn.jsdelivr.net/npm/@itk-wasm/dicom@latest/dist/bundle/index-worker-embedded.min.js';
+// import { readImage } from 'https://cdn.jsdelivr.net/npm/@itk-wasm/image-io@latest/dist/bundle/index-worker-embedded.min.js';
+
 // DOM Load confirmation and website initialization.
 window.addEventListener('DOMContentLoaded', () => {
 
     // RENDERER CONTAINER
     const containerRef = document.getElementById('vtk-vol_container');
 
-    if(!containerRef || !window.vtk || !window.itk || !window.dcmjs){
+    if(!containerRef || !window.vtk || !window.dcmjs){
         console.error('Elements or libraries not loaded.');
         return;
     }
@@ -130,7 +134,9 @@ window.addEventListener('DOMContentLoaded', () => {
             // Assign canvas dimentsions and max slider value.
             globals.canvas.width = globals.imageObjects[0].width;
             globals.canvas.height = globals.imageObjects[0].height;
-            document.getElementById('twoD-slider').max = globals.frameCount - 1;
+            document.getElementById('twoD-slider').max = globals.frameCount - 1;            
+            // Set Slider width to video width.
+            document.getElementById('twoD-slider').style.width = (document.getElementById('twoD-canvas').clientWidth - 60) + 'px';
 
             // Start playback.
             play();
@@ -183,9 +189,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Read in data into image variable, itkImage reference.
-                const arrayBuffer = await file.arrayBuffer();
-                const { image } = await itk.readImageArrayBuffer(null, arrayBuffer, file.name);
-                globals.itkImage = image;
+                const { outputImage, webWorkerPool } = await readImageDicomFileSeries({ inputImages: [file], numberOfWorkers: 1 });
+                webWorkerPool.terminateWorkers();
+                globals.itkImage = outputImage;
 
             }
 
@@ -194,12 +200,21 @@ window.addEventListener('DOMContentLoaded', () => {
                 // Check if every file is valid in the series.
                 const allFilesAreValid = dicomFiles.every(f => f instanceof File);
                 if (!allFilesAreValid) {
-                    throw new TypeError("All fules must be File objects");
+                    throw new TypeError("All files must be File objects");
                 }
 
-                // Read the whole series into image.
-                const { image } = await itk.readImageDICOMFileSeries(dicomFiles);
-                globals.itkImage = image;
+                // Read the whole series into image.        
+                try {
+                    console.log('Starting to load DICOM series...');
+                    const { outputImage, webWorkerPool } = await readImageDicomFileSeries({ inputImages: dicomFiles, numberOfWorkers: 1, });
+                    webWorkerPool.terminateWorkers();
+                    globals.itkImage = outputImage;
+                } catch (err) {
+                    console.error('Error inside readImageDicomFileSeries:', err);
+                    throw err; // rethrow if needed
+                }
+                
+                console.log("FINISHED LOADING")
             }
 
             // Ensure that image has data.
@@ -269,16 +284,20 @@ window.addEventListener('DOMContentLoaded', () => {
 
         // NRRD FILE LOGIC ----------------------------------------------------------------------
         if (file.name.endsWith('.nrrd')) {
+            console.log("NRRD Functionality Disabled, Please use DICOM Series");
+            // console.log("Starting to load NRRD File...")
 
-            // Read NRRD with ITK-Wasm
-            const arrayBuffer = await file.arrayBuffer();
-            const {image: itkImage} = await itk.readImageArrayBuffer(null, arrayBuffer, file.name);
+            // // // Read NRRD with ITK-Wasm
+            // const { outputImage, webWorkerPool } = await readImage({ serializedFile: [file], numberOfWorkers: 1 });
+            
+            // webWorkerPool.terminateWorkers();
+            // globals.itkImage = outputImage;
 
-            // Update boolean
-            globals.loaded_new = true;
+            // // Update boolean
+            // globals.loaded_new = true;
 
-            // Render volume.
-            renderVolume(itkImage);
+            // // Render volume.
+            // renderVolume(globals.itkImage);
 
         }
 
@@ -293,9 +312,9 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // 3D Volume
             // Read in data into image variable, itkImage reference.
-            const arrayBuffer = await file.arrayBuffer();
-            const { image } = await itk.readImageArrayBuffer(null, arrayBuffer, file.name);
-            globals.itkImage = image;
+            const { outputImage, webWorkerPool } = await readImageDicomFileSeries({ inputImages: [file], numberOfWorkers: 1 });
+            webWorkerPool.terminateWorkers();
+            globals.itkImage = outputImage;
 
             globals.loaded_new = true;
 
@@ -352,7 +371,7 @@ window.addEventListener('DOMContentLoaded', () => {
             axial_container.style.display = 'block';
             sagittal_container.style.display = 'block';
             coronal_container.style.display = 'block';
-            slice_container.style.display = 'flex';
+            slice_container.style.display = 'grid';
 
             // Render windows dont exist yet so, complete setup.
             if (!globals.axial_renderWindow){

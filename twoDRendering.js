@@ -23,7 +23,7 @@ export function play() {
 // 2D HALT PLAYBACK LOGIC ----------------------------------------------------------------------
 export function pause() {
     globals.isPlaying = false;
-    document.getElementById('twoD-play-pause').textContent = "Play";
+    document.getElementById('twoD-play-pause').textContent = "Play ";
 
     if (globals.animationInterval) {
         clearInterval(globals.animationInterval);
