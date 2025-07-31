@@ -8,7 +8,7 @@ import { pause, play, disableTwoD } from './twoDRendering.js';
 import { renderVolume, disableThreeD } from './volumeRendering.js';
 
 // Slice View Globals.
-import { closeSliceViews, initializeSliceViews, restoreSliceRendering, updateSliceViews } from './sliceRendering.js';
+import { closeSliceViews, initializeSliceViews, updateSliceViews } from './sliceRendering.js';
 
 // ITK Import
 import { readImageDicomFileSeries } from 'https://cdn.jsdelivr.net/npm/@itk-wasm/dicom@latest/dist/bundle/index-worker-embedded.min.js';
@@ -73,77 +73,81 @@ window.addEventListener('DOMContentLoaded', () => {
         
         const file = event.target.files[0];
 
-        if(!(file.name.endsWith('.dicom') || file.name.endsWith('.dcm'))){
-            alert(`Please select a valid file: .dcm or .dicom file.`);
+        if(!(file.name.endsWith('.dicom') || file.name.endsWith('.dcm') || file.name.endsWith('.mp4'))){
+            alert(`Please select a valid DICOM or MP4 file.`);
             return;
         }
 
-        globals.is2dMode = true;
-        const arrayBuffer = await file.arrayBuffer();
-        
-        // Start loading DICOM.
-        const dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
-        const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
+        if(file.name.endsWith('.dicom') || file.name.endsWith('.dcm')){
+            globals.is2dMode = true;
+            const arrayBuffer = await file.arrayBuffer();
 
-        // Start at frame 0.
-        globals.frameIndex = 0;
-        const pixelDataArrayBuffers = dataset.PixelData;
+            // Start loading DICOM.
+            const dicomData = dcmjs.data.DicomMessage.readFile(arrayBuffer);
+            const dataset = dcmjs.data.DicomMetaDictionary.naturalizeDataset(dicomData.dict);
 
-        if(!pixelDataArrayBuffers || pixelDataArrayBuffers.length === 0){
-            console.error('No PixelData found.');
-            return;
-        }
-        
-        // Set canvas and DICOM info.
-        globals.frameCount = pixelDataArrayBuffers.length;
-        globals.canvas = document.createElement('canvas');
-        globals.canvas.id = "twoD-canvas";
-        
-        // Add in canvas and hide 3D renderer.
-        document.getElementById('twoD-render-area').insertBefore(globals.canvas, document.getElementById('twoD-controls'));
-        document.getElementById('render-area').style.display = "none";
-        document.getElementById('twoD-main-container').style.display = "flex";
-        document.getElementById('twoD-render-area').style.display = "flex";
+            // Start at frame 0.
+            globals.frameIndex = 0;
+            const pixelDataArrayBuffers = dataset.PixelData;
 
-        // NEED TO CHANGE THIS, TWOD RENDER AREA IS NOT ALIGNING WITH THE CANVAS WIDTH
-        document.getElementById('twoD-render-area').style.width = document.getElementById('twoD-canvas').clientWidth;
-        globals.ctx = globals.canvas.getContext('2d');
+            if (!pixelDataArrayBuffers || pixelDataArrayBuffers.length === 0) {
+                console.error('No PixelData found.');
+                return;
+            }
 
-        globals.imageObjects = new Array(globals.frameCount);
-        
-        // Load image data into a URL JPEG blob.
-        for (let i = 0; i < globals.frameCount; i++){
-            const frameBuffer = pixelDataArrayBuffers[i];
-            const blob = new Blob([frameBuffer], { type: 'image/jpeg' });
-            const url = URL.createObjectURL(blob);
+            // Set canvas and DICOM info.
+            globals.frameCount = pixelDataArrayBuffers.length;
+            globals.canvas = document.createElement('canvas');
+            globals.canvas.id = "twoD-canvas";
 
-            // Add images into array for storage.
-            const img = new Image();
-            img.src = url;
-            globals.imageObjects[i] = img;
-        }
+            // Add in canvas and hide 3D renderer.
+            document.getElementById('twoD-render-area').insertBefore(globals.canvas, document.getElementById('twoD-controls'));
+            document.getElementById('render-area').style.display = "none";
+            document.getElementById('twoD-main-container').style.display = "flex";
+            document.getElementById('twoD-render-area').style.display = "flex";
 
-        // Ensure all images are loaded correctly.
-        let allLoaded = Promise.all(globals.imageObjects.map(img => {
-            return new Promise(resolve => {
-                img.onload = resolve;
-                img.onerror = resolve;
+            // NEED TO CHANGE THIS, TWOD RENDER AREA IS NOT ALIGNING WITH THE CANVAS WIDTH
+            document.getElementById('twoD-render-area').style.width = document.getElementById('twoD-canvas').clientWidth;
+            globals.ctx = globals.canvas.getContext('2d');
+
+            globals.imageObjects = new Array(globals.frameCount);
+
+            // Load image data into a URL JPEG blob.
+            for (let i = 0; i < globals.frameCount; i++) {
+                const frameBuffer = pixelDataArrayBuffers[i];
+                const blob = new Blob([frameBuffer], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(blob);
+
+                // Add images into array for storage.
+                const img = new Image();
+                img.src = url;
+                globals.imageObjects[i] = img;
+            }
+
+            // Ensure all images are loaded correctly.
+            let allLoaded = Promise.all(globals.imageObjects.map(img => {
+                return new Promise(resolve => {
+                    img.onload = resolve;
+                    img.onerror = resolve;
+                });
+            }));
+
+            // Once all loaded.
+            allLoaded.then(() => {
+                // Assign canvas dimentsions and max slider value.
+                globals.canvas.width = globals.imageObjects[0].width;
+                globals.canvas.height = globals.imageObjects[0].height;
+                document.getElementById('twoD-slider').max = globals.frameCount - 1;
+                // Set Slider width to video width.
+                document.getElementById('twoD-slider').style.width = (document.getElementById('twoD-render-area').clientWidth - 300) + 'px';
+
+                // Start playback.
+                play();
+
             });
-        }));
+        }
 
-        // Once all loaded.
-        allLoaded.then(() => {
-            // Assign canvas dimentsions and max slider value.
-            globals.canvas.width = globals.imageObjects[0].width;
-            globals.canvas.height = globals.imageObjects[0].height;
-            document.getElementById('twoD-slider').max = globals.frameCount - 1;            
-            // Set Slider width to video width.
-            document.getElementById('twoD-slider').style.width = (document.getElementById('twoD-render-area').clientWidth - 300) + 'px';
-
-            // Start playback.
-            play();
-
-        });
+        
 
     });
 
@@ -366,10 +370,19 @@ window.addEventListener('DOMContentLoaded', () => {
                 globals.coronal_renderer.addActor(globals.coronal_actor);
             }
 
+            // Enable slice interactors.
+            globals.axial_interactor.enable();
+            globals.sagittal_interactor.enable();
+            globals.coronal_interactor.enable();
             
         } else {
             console.log('Closing Slice Views');
             closeSliceViews(vol_container, sliders);
+
+            // Disable slice interactors.
+            globals.axial_interactor.disable();
+            globals.sagittal_interactor.disable();
+            globals.coronal_interactor.disable();
         }
         
         // Reset camera position to default

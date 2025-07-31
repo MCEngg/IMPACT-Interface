@@ -62,12 +62,6 @@ export function initializeSliceViews(vtkImage) {
     globals.sagittal_mapper = vtk.Rendering.Core.vtkImageResliceMapper.newInstance();
     globals.coronal_mapper = vtk.Rendering.Core.vtkImageResliceMapper.newInstance();
 
-    // Normal Plane Orientations (For CT adjustments);
-    // const direction = vtkImage.getDirection();
-    // const axialNormal = [direction[6], direction[7], direction[8]];
-    // const sagittalNormal = [direction[3], direction[4], direction[5]];
-    // const coronalNormal = [direction[0], direction[1], direction[2]];
-
     // Create Slice Planes
     globals.axial_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
     globals.sagittal_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
@@ -119,9 +113,10 @@ export function initializeSliceViews(vtkImage) {
     renderSetup(min, max, globals.axial_actor, globals.axial_renderer);
     renderSetup(min, max, globals.sagittal_actor, globals.sagittal_renderer);
     renderSetup(min, max, globals.coronal_actor, globals.coronal_renderer);
+    cancelAnimationFrame(globals.slice_Animations);
 
     // Reset sizes and update windows, then render.
-    requestAnimationFrame(() => {
+    globals.slice_Animations = requestAnimationFrame(() => {
         globals.axial_openGLRenderWindow.setSize(axial_container.clientWidth, axial_container.clientHeight);
         globals.sagittal_openGLRenderWindow.setSize(sagittal_container.clientWidth, sagittal_container.clientHeight);
         globals.coronal_openGLRenderWindow.setSize(coronal_container.clientWidth, coronal_container.clientHeight);
@@ -283,9 +278,10 @@ export function updateSliceViews(vtkImage) {
     globals.coronal_renderWindow.render();
 
     globals.loaded_new = false
+    cancelAnimationFrame(globals.slice_Animations);
 
     // Reset sizes and update windows, then render.
-    requestAnimationFrame(() => {
+    globals.slice_Animations = requestAnimationFrame(() => {
         globals.axial_openGLRenderWindow.setSize(axial_container.clientWidth, axial_container.clientHeight);
         globals.sagittal_openGLRenderWindow.setSize(sagittal_container.clientWidth, sagittal_container.clientHeight);
         globals.coronal_openGLRenderWindow.setSize(coronal_container.clientWidth, coronal_container.clientHeight);
@@ -401,10 +397,10 @@ document.getElementById('AxialSlice').addEventListener('wheel', (event) => {
     if (slider) slider.value = newIdx;
 
     const container = document.getElementById('AxialSlice');
-
+    cancelAnimationFrame(globals.slice_Animations);
 
     // Render ONLY the axial window
-    requestAnimationFrame(() => {
+    globals.slice_Animations = requestAnimationFrame(() => {
         globals.axial_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
         globals.axial_renderer.resetCameraClippingRange();
         
@@ -457,9 +453,10 @@ document.getElementById('SagittalSlice').addEventListener('wheel', (event) => {
     if (slider) slider.value = newIdx.toString();
 
     const container = document.getElementById('SagittalSlice');
+    cancelAnimationFrame(globals.slice_Animations);
 
     // Trigger render.
-    requestAnimationFrame(() => {
+    globals.slice_Animations = requestAnimationFrame(() => {
         globals.sagittal_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
         globals.sagittal_renderer.resetCameraClippingRange();
         
@@ -512,9 +509,10 @@ document.getElementById('CoronalSlice').addEventListener('wheel', (event) => {
     if (slider) slider.value = newIdx.toString();
 
     const container = document.getElementById('CoronalSlice');
+    cancelAnimationFrame(globals.slice_Animations);
 
     // Trigger render.
-    requestAnimationFrame(() => {
+    globals.slice_Animations = requestAnimationFrame(() => {
         globals.coronal_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
         globals.coronal_renderer.resetCameraClippingRange();
 
@@ -530,6 +528,8 @@ document.getElementById('CoronalSlice').addEventListener('wheel', (event) => {
 
 // Axial Slider logic
 document.getElementById('ax_slider').addEventListener('input', (event) => {
+    cancelAnimationFrame(globals.slice_Animations);
+    
     const spacing = globals.vtkImage.getSpacing();
     const origin = globals.vtkImage.getOrigin();
     const zIndex = Number(event.target.value);
@@ -540,7 +540,7 @@ document.getElementById('ax_slider').addEventListener('input', (event) => {
 
     const container = document.getElementById('AxialSlice');
 
-    requestAnimationFrame(() => {
+    globals.slice_Animations = requestAnimationFrame(() => {
         globals.axial_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
         globals.axial_renderer.resetCameraClippingRange();
 
@@ -553,6 +553,8 @@ document.getElementById('ax_slider').addEventListener('input', (event) => {
 
 // Sagittal Slider logic
 document.getElementById('sa_slider').addEventListener('input', (event) => {
+    cancelAnimationFrame(globals.slice_Animations);
+
     const spacing = globals.vtkImage.getSpacing();
     const origin = globals.vtkImage.getOrigin();
     const xIndex = Number(event.target.value);
@@ -563,7 +565,7 @@ document.getElementById('sa_slider').addEventListener('input', (event) => {
 
     const container = document.getElementById('SagittalSlice');
 
-    requestAnimationFrame(() => {
+    globals.slice_Animations = requestAnimationFrame(() => {
         globals.sagittal_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
         globals.sagittal_renderer.resetCameraClippingRange();
 
@@ -576,6 +578,8 @@ document.getElementById('sa_slider').addEventListener('input', (event) => {
 
 // Coronal Slider logic
 document.getElementById('cor_slider').addEventListener('input', (event) => {
+    cancelAnimationFrame(globals.slice_Animations);
+    
     const spacing = globals.vtkImage.getSpacing();
     const origin = globals.vtkImage.getOrigin();
     const yIndex = Number(event.target.value);
@@ -587,7 +591,7 @@ document.getElementById('cor_slider').addEventListener('input', (event) => {
 
     const container = document.getElementById('CoronalSlice');
 
-    requestAnimationFrame(() => {
+    globals.slice_Animations = requestAnimationFrame(() => {
         globals.coronal_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
         globals.coronal_renderer.resetCameraClippingRange();
 

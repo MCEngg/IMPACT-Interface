@@ -18,14 +18,6 @@ export function renderVolume(itkImage){
     globals.vtkImage.setOrigin(itkImage.origin[0], itkImage.origin[1], itkImage.origin[2]);
     globals.vtkImage.getPointData().setScalars(dataArray);
 
-    // console.log(vtkImage.getSpacing());       // Check for 0 or negative spacing
-    // console.log(vtkImage.getDirection());     // Should be identity or orthogonal matrix
-    // console.log(vtkImage.getOrigin());        // Should be numeric
-    // console.log(vtkImage.getBounds());
-    // console.log(vtkImage.getDimensions());
-    // console.log(vtkImage.getExtent());
-    // console.log('Scalars: ', vtkImage.getPointData().getScalars());
-
     const volumeMapper = vtk.Rendering.Core.vtkVolumeMapper.newInstance();
     volumeMapper.setInputData(globals.vtkImage);
 
@@ -53,7 +45,7 @@ export function renderVolume(itkImage){
 
     globals.volumeActor = volume;
 
-    // volumeInteractorSetup();
+    volumeInteractorSetup();
 
     // Clear Previous Scene
     globals.renderer.removeAllViewProps();
@@ -69,15 +61,12 @@ export function disableThreeD(){
 
 // INTERACTOR SETUP LOGIC ----------------------------------------------------------------------
 export function volumeInteractorSetup(){
-    const volume_interactor = vtk.Rendering.Core.vtkRenderWindowInteractor.newInstance();
-    
-    // Set view and interactor style.
-    // volume_interactor.setView(globals.renderWindow);
-
-    volume_interactor.setInteractorStyle(vtk.Interaction.Style.vtkInteractorStyleImage.newInstance());
 
     // Set Manipulator styles and remove all pre-existing manipulators.
     const manipulatorStyle = vtk.Interaction.Style.vtkInteractorStyleManipulator.newInstance();
+
+    globals.renderWindow.getInteractor().setInteractorStyle(manipulatorStyle);
+
     manipulatorStyle.removeAllMouseManipulators();
 
     // Add Rotate Manipulator on left button click.
@@ -87,14 +76,10 @@ export function volumeInteractorSetup(){
     manipulatorStyle.addMouseManipulator(vtk.Interaction.Manipulators.vtkMouseCameraTrackballPanManipulator.newInstance(buttonMap.middleButton));
 
     // Add Zoom to scroll wheel.
-    manipulatorStyle.addMouseManipulator(vtk.Interaction.Manipulators.vtkMouseCameraTrackballZoomManipulator.newInstance(buttonMap.shiftScrollMiddleButton));
+    manipulatorStyle.addMouseManipulator(vtk.Interaction.Manipulators.vtkMouseCameraTrackballZoomManipulator.newInstance(buttonMap.scrollMiddleButton));
 
-    // Attach to interactor
-    volume_interactor.setInteractorStyle(manipulatorStyle);
-
-    volume_interactor.initialize();
-    volume_interactor.bindEvents(document.getElementById('vtk-vol_container'));
-    console.log("DONE HERE");
+    // Add gesture manipulator so we can interact with the volume.
+    manipulatorStyle.addGestureManipulator(vtk.Interaction.Manipulators.vtkGestureCameraManipulator.newInstance());
 
 }
 

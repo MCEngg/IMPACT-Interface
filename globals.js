@@ -52,4 +52,6 @@ export const globals = {
     axial_Plane: null,
     sagittal_Plane: null,
     coronal_Plane: null,
+
+    slice_Animations: null,
 }
