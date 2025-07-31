@@ -5,7 +5,7 @@
         <meta charset="UTF-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
         <link rel = "icon" href = "RendererIcon.ico" />
-        <title> NIDUS Renderer </title>
+        <title> IMPACT Interface </title>
         
         <!-- Style import for HTML components. -->
         <link rel="stylesheet" href="styles.css">
@@ -41,11 +41,11 @@
                         <!-- Check Boxes -->
                         <div>
                             <input type="checkbox" id="dispVolBox" name="dispVolBox" value="displayVol" checked>
-                            <label for="dispVol">Display Volume on Main Render</label>
+                            <label for="dispVolBox">Display Volume on Main Render</label>
                         </div>
                         <div>
                             <input type="checkbox" id="dispSlicesBox" name="dispSlicesBox" value="displaySlice">
-                            <label for="dispSlices">Display Slices on Main Render</label>
+                            <label for="dispSlicesBox">Display Slices on Main Render</label>
                         </div>
 
                         <!-- Sliders -->
@@ -69,22 +69,41 @@
             </div>
 
             <!-- 2D Rendering Area -->
-            <div id="twoD-render-area">
+            <div id="twoD-main-container">
 
-                <div id="twoD-controls">
-                    <button id="twoD-play-pause">Play/Pause</button>
-                    <input type="range" id="twoD-slider" style="width: 100%;"/>
+                <div id="twoD-render-area">
+                    <div id="twoD-controls">
+                        <button id="twoD-play-pause">Play/Pause</button>
+                        <input type="range" id="twoD-slider" style="width: 100%;" />
+                        <label id="frameCounter" for="fps-Selector" style="color: white;"></label>
+                        
+                        <label id="fps-selector-label" for="fps-Selector" style="color: white;">FPS:</label>
+                        <select id="fps-Selector">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="5">5</option>
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                        </select>
+                    </div>
                 </div>
+
+                <div id="annotation-details">
+                    
+                </div>
+
             </div>
+            
 
             <!-- 3D Rendering Area -->
             <div id="render-area">
 
-                <!-- VTK Volume Container -->
-                <div id="vtk-vol_container"></div>
-                
-                <!-- Slices -->
-                <div id="sliceRow" style="display: none;">
+                <div id="vol-slice-grid">
+                    
+                    <!-- VTK Volume Container -->
+                    <div id="vtk-vol_container"></div>
+                    
+                    <!-- Slices -->
                     <div class="sliceColumn">
                         <p class="sliceLabel" id="axialSliceLabel">Axial View</p>
                         <div class='slice-view' id="AxialSlice"></div>
@@ -97,8 +116,8 @@
                         <p class="sliceLabel" id="coronalSliceLabel">Coronal View</p>
                         <div class='slice-view' id="CoronalSlice"></div>
                     </div>
-                    
                 </div>
+                
             </div>
 
             

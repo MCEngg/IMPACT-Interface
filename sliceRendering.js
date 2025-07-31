@@ -1,12 +1,6 @@
 import { globals } from "./globals.js";
 
-// const manipulatorList = {
-//     Pan: vtk.Interaction.Manipulators.vtkMouseCameraTrackballPanManipulator,
-//     Zoom: vtk.Interaction.Manipulators.vtkMouseCameraTrackballZoomManipulator,
-
-// }
-
-const buttonMap = {
+export const buttonMap = {
     leftButton: { button: 1 },
     middleButton: { button: 2 },
     rightButton: { button: 3 },
@@ -45,36 +39,25 @@ export function initializeSliceViews(vtkImage) {
     const sagittal_container = document.getElementById('SagittalSlice');
     const coronal_container = document.getElementById('CoronalSlice');
 
-    console.log('New image slices!');
+    console.log('Initializing New image slices!');
 
     // Create Renderers 
     // Axial
     globals.axial_openGLRenderWindow = vtk.Rendering.OpenGL.vtkRenderWindow.newInstance();
     globals.axial_renderWindow = vtk.Rendering.Core.vtkRenderWindow.newInstance();
-    globals.axial_renderWindow.addView(globals.axial_openGLRenderWindow);
     globals.axial_renderer = vtk.Rendering.Core.vtkRenderer.newInstance();
-    globals.axial_renderWindow.addRenderer(globals.axial_renderer);
 
     // Sagittal
     globals.sagittal_openGLRenderWindow = vtk.Rendering.OpenGL.vtkRenderWindow.newInstance();
     globals.sagittal_renderWindow = vtk.Rendering.Core.vtkRenderWindow.newInstance();
-    globals.sagittal_renderWindow.addView(globals.sagittal_openGLRenderWindow);
     globals.sagittal_renderer = vtk.Rendering.Core.vtkRenderer.newInstance();
-    globals.sagittal_renderWindow.addRenderer(globals.sagittal_renderer);
 
     // Coronal
     globals.coronal_openGLRenderWindow = vtk.Rendering.OpenGL.vtkRenderWindow.newInstance();
     globals.coronal_renderWindow = vtk.Rendering.Core.vtkRenderWindow.newInstance();
-    globals.coronal_renderWindow.addView(globals.coronal_openGLRenderWindow);
     globals.coronal_renderer = vtk.Rendering.Core.vtkRenderer.newInstance();
-    globals.coronal_renderWindow.addRenderer(globals.coronal_renderer);
 
-    // Attach GL Windows to Containers and size.
-    globals.axial_openGLRenderWindow.setContainer(axial_container);
-    globals.sagittal_openGLRenderWindow.setContainer(sagittal_container);
-    globals.coronal_openGLRenderWindow.setContainer(coronal_container);
-
-    // Slice Mappers
+    // Create Slice Mappers
     globals.axial_mapper = vtk.Rendering.Core.vtkImageResliceMapper.newInstance();
     globals.sagittal_mapper = vtk.Rendering.Core.vtkImageResliceMapper.newInstance();
     globals.coronal_mapper = vtk.Rendering.Core.vtkImageResliceMapper.newInstance();
@@ -85,47 +68,24 @@ export function initializeSliceViews(vtkImage) {
     // const sagittalNormal = [direction[3], direction[4], direction[5]];
     // const coronalNormal = [direction[0], direction[1], direction[2]];
 
-    // Slice Planes
+    // Create Slice Planes
     globals.axial_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
-    globals.axial_Plane.setNormal(0, 0, 1);
-    globals.axial_Plane.setOrigin(vtkImage.getCenter());
-
     globals.sagittal_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
-    globals.sagittal_Plane.setNormal(1, 0, 0);
-    globals.sagittal_Plane.setOrigin(vtkImage.getCenter());
-
     globals.coronal_Plane = vtk.Common.DataModel.vtkPlane.newInstance();
-    globals.coronal_Plane.setNormal(0, 1, 0);
-    globals.coronal_Plane.setOrigin(vtkImage.getCenter());
 
     // Create Slice Actors
     globals.axial_actor = vtk.Rendering.Core.vtkImageSlice.newInstance();
     globals.sagittal_actor = vtk.Rendering.Core.vtkImageSlice.newInstance();
     globals.coronal_actor = vtk.Rendering.Core.vtkImageSlice.newInstance();
 
-    // Set Actor Mappers
-    globals.axial_actor.setMapper(globals.axial_mapper);
-    globals.sagittal_actor.setMapper(globals.sagittal_mapper);
-    globals.coronal_actor.setMapper(globals.coronal_mapper);
+    sliceSetup(globals.axial_renderWindow, globals.axial_openGLRenderWindow, globals.axial_renderer, 
+               axial_container, globals.axial_Plane, globals.axial_actor, globals.axial_mapper, 0, 0, 1);
 
-    // Pass Data from VTK Image to Mappers
-    globals.axial_mapper.setInputData(vtkImage);
-    globals.sagittal_mapper.setInputData(vtkImage);
-    globals.coronal_mapper.setInputData(vtkImage);
+    sliceSetup(globals.sagittal_renderWindow, globals.sagittal_openGLRenderWindow, globals.sagittal_renderer, 
+               sagittal_container, globals.sagittal_Plane, globals.sagittal_actor, globals.sagittal_mapper, 1, 0, 0);
 
-    globals.axial_mapper.setSlicePlane(globals.axial_Plane);
-    globals.sagittal_mapper.setSlicePlane(globals.sagittal_Plane);
-    globals.coronal_mapper.setSlicePlane(globals.coronal_Plane);
-
-    // Set Slab Mode
-    // globals.axial_mapper.setSlabType(0);
-    // globals.sagittal_mapper.setSlabType(0);
-    // globals.coronal_mapper.setSlabType(0);
-
-    // Add Actors to renderers
-    globals.axial_renderer.addActor(globals.axial_actor);
-    globals.sagittal_renderer.addActor(globals.sagittal_actor);
-    globals.coronal_renderer.addActor(globals.coronal_actor);
+    sliceSetup(globals.coronal_renderWindow, globals.coronal_openGLRenderWindow, globals.coronal_renderer, 
+               coronal_container, globals.coronal_Plane, globals.coronal_actor, globals.coronal_mapper, 0, 1, 0);
 
     // Set up cameras
     let axial_cam = globals.axial_renderer.getActiveCamera();
@@ -145,44 +105,20 @@ export function initializeSliceViews(vtkImage) {
 
     // Set up interactors.
     globals.axial_interactor = vtk.Rendering.Core.vtkRenderWindowInteractor.newInstance();
-    globals.axial_interactor.setView(globals.axial_openGLRenderWindow);
-    globals.axial_interactor.setInteractorStyle(vtk.Interaction.Style.vtkInteractorStyleImage.newInstance());
-    globals.axial_interactor.initialize();
-    globals.axial_interactor.bindEvents(axial_container);
+    interactorSetup(globals.axial_interactor, globals.axial_openGLRenderWindow, axial_container);
 
     globals.sagittal_interactor = vtk.Rendering.Core.vtkRenderWindowInteractor.newInstance();
-    globals.sagittal_interactor.setView(globals.sagittal_openGLRenderWindow);
-    globals.sagittal_interactor.setInteractorStyle(vtk.Interaction.Style.vtkInteractorStyleImage.newInstance());
-    globals.sagittal_interactor.initialize();
-    globals.sagittal_interactor.bindEvents(sagittal_container);
+    interactorSetup(globals.sagittal_interactor, globals.sagittal_openGLRenderWindow, sagittal_container);
 
     globals.coronal_interactor = vtk.Rendering.Core.vtkRenderWindowInteractor.newInstance();
-    globals.coronal_interactor.setView(globals.coronal_openGLRenderWindow);
-    globals.coronal_interactor.setInteractorStyle(vtk.Interaction.Style.vtkInteractorStyleImage.newInstance());
-    globals.coronal_interactor.initialize();
-    globals.coronal_interactor.bindEvents(coronal_container);
+    interactorSetup(globals.coronal_interactor, globals.coronal_openGLRenderWindow, coronal_container);
 
     // Set Colour levels.
     const [min, max] = vtkImage.getPointData().getScalars().getRange();
 
-    globals.axial_actor.getProperty().setColorWindow(max - min + 1);
-    globals.axial_actor.getProperty().setColorLevel((max + min) / 2);
-
-    globals.sagittal_actor.getProperty().setColorWindow(max - min + 1);
-    globals.sagittal_actor.getProperty().setColorLevel((max + min) / 2);
-
-    globals.coronal_actor.getProperty().setColorWindow(max - min + 1);
-    globals.coronal_actor.getProperty().setColorLevel((max + min) / 2);
-
-    // Renderer backgrounds.
-    globals.axial_renderer.setBackground(0, 0, 0);
-    globals.sagittal_renderer.setBackground(0, 0, 0);
-    globals.coronal_renderer.setBackground(0, 0, 0);
-
-    // Reset Camera positions.
-    globals.axial_renderer.resetCamera();
-    globals.sagittal_renderer.resetCamera();
-    globals.coronal_renderer.resetCamera();
+    renderSetup(min, max, globals.axial_actor, globals.axial_renderer);
+    renderSetup(min, max, globals.sagittal_actor, globals.sagittal_renderer);
+    renderSetup(min, max, globals.coronal_actor, globals.coronal_renderer);
 
     // Reset sizes and update windows, then render.
     requestAnimationFrame(() => {
@@ -204,6 +140,40 @@ export function initializeSliceViews(vtkImage) {
     updateSliderRanges(vtkImage);
 
 }
+
+export function renderSetup(min, max, actor, renderer){
+    
+    // Set Colour Levels.
+    actor.getProperty().setColorWindow(max - min + 1);
+    actor.getProperty().setColorLevel((max + min) / 2);
+
+    renderer.setBackground(0, 0, 0);
+    renderer.resetCamera();
+}
+
+// SLICE SETUP LOGIC ---------------------------------------------------------------------------
+export function sliceSetup(renderWindow, gl_Window, renderer, container, plane, actor, mapper, x, y,z){
+    
+    // Attach GL Window to Containers and Size.
+    renderWindow.addView(gl_Window);
+    
+    // Attach renderer to window.
+    renderWindow.addRenderer(renderer);
+    gl_Window.setContainer(container);
+    
+    // Set plane normal and starting position.
+    plane.setNormal(x, y, z);
+    plane.setOrigin(globals.vtkImage.getCenter());
+
+    // Set actor mapper and input data.
+    actor.setMapper(mapper);
+    mapper.setInputData(globals.vtkImage);
+    mapper.setSlicePlane(plane);
+
+    // Add actor to renderer.
+    renderer.addActor(actor);
+}
+
 
 // UPDATE SLIDER RANGES LOGIC -----------------------------------------------------------------
 export function updateSliderRanges(vtkImage) {
@@ -292,24 +262,15 @@ export function updateSliceViews(vtkImage) {
     globals.coronal_renderer.addActor(globals.coronal_actor);
 
     // Set up interactors.
-    globals.axial_interactor.setView(globals.axial_openGLRenderWindow);
-    globals.axial_interactor.setInteractorStyle(vtk.Interaction.Style.vtkInteractorStyleImage.newInstance());
-    globals.axial_interactor.initialize();
-    globals.axial_interactor.bindEvents(axial_container);
+    globals.axial_interactor = vtk.Rendering.Core.vtkRenderWindowInteractor.newInstance();
+    interactorSetup(globals.axial_interactor, globals.axial_openGLRenderWindow, axial_container);
 
-    globals.sagittal_interactor.setView(globals.sagittal_openGLRenderWindow);
-    globals.sagittal_interactor.setInteractorStyle(vtk.Interaction.Style.vtkInteractorStyleImage.newInstance());
-    globals.sagittal_interactor.initialize();
-    globals.sagittal_interactor.bindEvents(sagittal_container);
+    globals.sagittal_interactor = vtk.Rendering.Core.vtkRenderWindowInteractor.newInstance();
+    interactorSetup(globals.sagittal_interactor, globals.sagittal_openGLRenderWindow, sagittal_container);
 
-    globals.coronal_interactor.setView(globals.coronal_openGLRenderWindow);
-    globals.coronal_interactor.setInteractorStyle(vtk.Interaction.Style.vtkInteractorStyleImage.newInstance());
-    globals.coronal_interactor.initialize();
-    globals.coronal_interactor.bindEvents(coronal_container);
+    globals.coronal_interactor = vtk.Rendering.Core.vtkRenderWindowInteractor.newInstance();
+    interactorSetup(globals.coronal_interactor, globals.coronal_openGLRenderWindow, coronal_container);
 
-    [globals.axial_interactor, globals.sagittal_interactor, globals.coronal_interactor].forEach(element => {
-        addManipulators(element);
-    });
 
     // Reset Camera positions.
     globals.axial_renderer.resetCamera();
@@ -329,6 +290,10 @@ export function updateSliceViews(vtkImage) {
         globals.sagittal_openGLRenderWindow.setSize(sagittal_container.clientWidth, sagittal_container.clientHeight);
         globals.coronal_openGLRenderWindow.setSize(coronal_container.clientWidth, coronal_container.clientHeight);
 
+        globals.axial_renderer.resetCameraClippingRange();
+        globals.sagittal_renderer.resetCameraClippingRange();
+        globals.coronal_renderer.resetCameraClippingRange();
+
         globals.axial_openGLRenderWindow.modified();
         globals.sagittal_openGLRenderWindow.modified();
         globals.coronal_openGLRenderWindow.modified();
@@ -336,6 +301,7 @@ export function updateSliceViews(vtkImage) {
         globals.axial_renderWindow.render();
         globals.sagittal_renderWindow.render();
         globals.coronal_renderWindow.render();
+
     })
 
     updateSliderRanges(vtkImage);
@@ -344,7 +310,7 @@ export function updateSliceViews(vtkImage) {
 }
 
 // CLOSE SLICE CONTROLS AND VIEWS LOGIC -------------------------------------------------------
-export function closeSliceViews(vol_container, slice_container, sliders){
+export function closeSliceViews(vol_container, sliders){
     globals.isSliceMode = false;
     
     console.log("Removed all Slice Props");
@@ -356,25 +322,278 @@ export function closeSliceViews(vol_container, slice_container, sliders){
     sliders.style.display = 'none';
 
     // Reset Volume Window to full view.
-    vol_container.style.width = '100vw'
-    vol_container.style.height = '100vh'
+    vol_container.style.width = 'auto'
+    vol_container.style.height = 'auto'
     vol_container.style.flex = '1';
 
-    slice_container.style.display = 'none';
+    // Set grid to 1x1.
+    document.getElementById('vol-slice-grid').style.gridTemplateColumns = "1fr";
+    document.getElementById('vol-slice-grid').style.gridTemplateRows = "1fr";
 
-    console.log("isSliceMode: ", globals.isSliceMode)
+    // Disable slice containers.
+    // Set Slice Columns to none.
+    for (const column of document.getElementsByClassName('sliceColumn')) {
+        column.style.display = 'none';
+    }
+
+    console.log("isSliceMode: ", globals.isSliceMode);
 }
 
-export function addManipulators(spec_interactor){
+// INTERACTOR SETUP LOGIC ---------------------------------------------------------------------
+export function interactorSetup(spec_interactor, gl_Window, container){
+    
+    // Set view and interactor style.
+    spec_interactor.setView(gl_Window);
+    spec_interactor.setInteractorStyle(vtk.Interaction.Style.vtkInteractorStyleImage.newInstance());
+
+    // Set Manipulator styles and remove all pre-existing manipulators.
     const manipulatorStyle = vtk.Interaction.Style.vtkInteractorStyleManipulator.newInstance();
+    manipulatorStyle.removeAllMouseManipulators();
 
     // Add Pan manipulator on scroll wheel click.
-    manipulatorStyle.addMouseManipulator(vtk.Interaction.Manipulators.MouseCameraTrackballPanManipulator.newInstance({ middleButton }));
+    manipulatorStyle.addMouseManipulator(vtk.Interaction.Manipulators.vtkMouseCameraTrackballPanManipulator.newInstance(buttonMap.middleButton));
     
     // Add Zoom to scroll wheel.
-    manipulatorStyle.addMouseManipulator(vtk.Interaction.Manipulators.MouseCameraTrackballZoomManipulator.newInstance({ shiftScrollMiddleButton }));
+    manipulatorStyle.addMouseManipulator(vtk.Interaction.Manipulators.vtkMouseCameraTrackballZoomManipulator.newInstance(buttonMap.shiftScrollMiddleButton));
 
     // Attach to interactor
     spec_interactor.setInteractorStyle(manipulatorStyle);
 
+    // Initialize and bind events.
+    spec_interactor.initialize();
+    spec_interactor.bindEvents(container);
+
 }
+
+// SCROLL SLIDER UPDATES LOGIC ----------------------------------------------------------------
+
+// Axial Slice
+document.getElementById('AxialSlice').addEventListener('wheel', (event) => {
+
+    // If the shift key is being used, then zoom mode is enabled, not scroll.
+    if (event.shiftKey) return;
+
+    event.preventDefault();
+
+    const spacing = globals.vtkImage.getSpacing();     // Spacing Values: [sx, sy, sz].
+    const origin = globals.vtkImage.getOrigin();       // Origin Coordinates: [ox, oy, oz].
+    const extent = globals.vtkImage.getExtent();       // Min/Max Values: [xmin, xmax, ymin, ymax, zmin, zmax].
+    const planeOrigin = globals.axial_Plane.getOrigin();
+
+    // Current index along Z
+    let currentIdx = Math.round((planeOrigin[2] - origin[2]) / spacing[2]);
+
+    const delta = Math.sign(event.deltaY);
+    const minIdx = extent[4]; // zmin value.
+    const maxIdx = extent[5]; // zmax value.
+
+    // Clamp new index
+    let newIdx = Math.min(Math.max(currentIdx + delta, minIdx), maxIdx);
+    let newZ = origin[2] + newIdx * spacing[2];
+
+    // Set new origin for the axial plane (z-axis moves)
+    globals.axial_Plane.setOrigin(planeOrigin[0], planeOrigin[1], newZ);
+    globals.axial_Plane.modified();
+    globals.axial_mapper.modified();
+
+    // Update slider
+    const slider = document.getElementById('ax_slider');
+    if (slider) slider.value = newIdx;
+
+    const container = document.getElementById('AxialSlice');
+
+
+    // Render ONLY the axial window
+    requestAnimationFrame(() => {
+        globals.axial_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
+        globals.axial_renderer.resetCameraClippingRange();
+        
+        globals.axial_openGLRenderWindow.modified();   // ensure the render window notices the update.
+        globals.axial_renderWindow.render();
+        globals.genericRenderWindow.getRenderWindow().render();
+    });
+
+});
+
+// Sagittal Slice
+document.getElementById('SagittalSlice').addEventListener('wheel', (event) => {
+
+    // If the shift key is being used, then zoom mode is enabled, not scroll.
+    if (event.shiftKey) return;
+
+    event.preventDefault();
+
+    const spacing = globals.vtkImage.getSpacing();     // Spacing Values: [sx, sy, sz].
+    const origin = globals.vtkImage.getOrigin();       // Origin Coordinates: [ox, oy, oz].
+    const extent = globals.vtkImage.getExtent();       // Index Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
+    const bounds = globals.vtkImage.getBounds();       // Image Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
+    const planeOrigin = globals.sagittal_Plane.getOrigin();
+
+    // Current index along X (sagittal).
+    let currentIdx = Math.round((planeOrigin[0] - origin[0]) / spacing[0]);
+
+    const delta = Math.sign(event.deltaY);
+    const minIdx = extent[0]; // xmin
+    const maxIdx = extent[1]; // xmax
+
+    // Compute new index and clamp.
+    let newIdx = Math.min(Math.max(currentIdx + delta, minIdx), maxIdx);
+
+    // Compute world coordinate X position for the new slice.
+    let newX = origin[0] + newIdx * spacing[0];
+
+    // Clamp newX to data bounds (world space)
+    // Take the max of the new position and the minimum bound.
+    // Then take the minimum of the new position and the maximum bound.
+    newX = Math.min(Math.max(newX, bounds[0]), bounds[1]);
+
+    // Update plane.
+    globals.sagittal_Plane.setOrigin(newX, planeOrigin[1], planeOrigin[2]);
+    globals.sagittal_Plane.modified();
+    globals.sagittal_mapper.modified();
+
+    // Update HTML slider (make sure it's an int).
+    const slider = document.getElementById('sa_slider');
+    if (slider) slider.value = newIdx.toString();
+
+    const container = document.getElementById('SagittalSlice');
+
+    // Trigger render.
+    requestAnimationFrame(() => {
+        globals.sagittal_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
+        globals.sagittal_renderer.resetCameraClippingRange();
+        
+        globals.sagittal_openGLRenderWindow.modified();
+        globals.sagittal_renderWindow.render();
+        globals.genericRenderWindow.getRenderWindow().render()
+    });
+
+});
+
+// Coronal Slice
+document.getElementById('CoronalSlice').addEventListener('wheel', (event) => {
+
+    // If the shift key is being used, then zoom mode is enabled, not scroll.
+    if (event.shiftKey) return;
+
+    event.preventDefault();
+
+    const spacing = globals.vtkImage.getSpacing();     // Spacing Values: [sx, sy, sz].
+    const origin = globals.vtkImage.getOrigin();       // Origin Coordinates: [ox, oy, oz].
+    const extent = globals.vtkImage.getExtent();       // Index Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
+    const bounds = globals.vtkImage.getBounds();       // Image Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
+    const planeOrigin = globals.coronal_Plane.getOrigin();
+
+    // Current index along Y (coronal).
+    let currentIdx = Math.round((planeOrigin[1] - origin[1]) / spacing[1]);
+
+    const delta = Math.sign(event.deltaY);
+    const minIdx = extent[2]; // ymin
+    const maxIdx = extent[3]; // ymax
+
+    // Compute new index and clamp.
+    let newIdx = Math.min(Math.max(currentIdx + delta, minIdx), maxIdx);
+
+    // Compute world coordinate Y position for the new slice.
+    let newY = origin[1] + newIdx * spacing[1];
+
+    // Clamp newY to data bounds (world space)
+    // Take the max of the new position and the minimum bound.
+    // Then take the minimum of the new position and the maximum bound.
+    newY = Math.min(Math.max(newY, bounds[2]), bounds[3]);
+
+    // Update plane.
+    globals.coronal_Plane.setOrigin(planeOrigin[0], newY, planeOrigin[2]);
+    globals.coronal_Plane.modified();
+    globals.coronal_mapper.modified();
+
+    // Update HTML slider (make sure it's an int).
+    const slider = document.getElementById('cor_slider');
+    if (slider) slider.value = newIdx.toString();
+
+    const container = document.getElementById('CoronalSlice');
+
+    // Trigger render.
+    requestAnimationFrame(() => {
+        globals.coronal_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
+        globals.coronal_renderer.resetCameraClippingRange();
+
+        globals.coronal_openGLRenderWindow.modified();
+        globals.coronal_renderWindow.render();
+        globals.genericRenderWindow.getRenderWindow().render()
+    });
+
+
+});
+
+// SLICE SLIDER LOGIC ----------------------------------------------------------------------
+
+// Axial Slider logic
+document.getElementById('ax_slider').addEventListener('input', (event) => {
+    const spacing = globals.vtkImage.getSpacing();
+    const origin = globals.vtkImage.getOrigin();
+    const zIndex = Number(event.target.value);
+    const zCoord = origin[2] + zIndex * spacing[2];
+    globals.axial_Plane.setOrigin(origin[0], origin[1], zCoord);
+    globals.axial_Plane.modified();
+    globals.axial_mapper.modified();
+
+    const container = document.getElementById('AxialSlice');
+
+    requestAnimationFrame(() => {
+        globals.axial_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
+        globals.axial_renderer.resetCameraClippingRange();
+
+        globals.axial_openGLRenderWindow.modified();
+        globals.axial_renderWindow.render();
+        globals.genericRenderWindow.getRenderWindow().render();
+    });
+
+});
+
+// Sagittal Slider logic
+document.getElementById('sa_slider').addEventListener('input', (event) => {
+    const spacing = globals.vtkImage.getSpacing();
+    const origin = globals.vtkImage.getOrigin();
+    const xIndex = Number(event.target.value);
+    const xCoord = origin[0] + xIndex * spacing[0];
+    globals.sagittal_Plane.setOrigin(xCoord, origin[1], origin[2]);
+    globals.sagittal_Plane.modified();
+    globals.sagittal_mapper.modified();
+
+    const container = document.getElementById('SagittalSlice');
+
+    requestAnimationFrame(() => {
+        globals.sagittal_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
+        globals.sagittal_renderer.resetCameraClippingRange();
+
+        globals.sagittal_openGLRenderWindow.modified();
+        globals.sagittal_renderWindow.render();
+        globals.genericRenderWindow.getRenderWindow().render();
+    });
+
+});
+
+// Coronal Slider logic
+document.getElementById('cor_slider').addEventListener('input', (event) => {
+    const spacing = globals.vtkImage.getSpacing();
+    const origin = globals.vtkImage.getOrigin();
+    const yIndex = Number(event.target.value);
+    const yCoord = origin[1] + yIndex * spacing[1];
+    globals.coronal_Plane.setOrigin(origin[0], yCoord, origin[2]);
+
+    globals.coronal_Plane.modified();
+    globals.coronal_mapper.modified();
+
+    const container = document.getElementById('CoronalSlice');
+
+    requestAnimationFrame(() => {
+        globals.coronal_openGLRenderWindow.setSize(container.clientWidth, container.clientHeight);
+        globals.coronal_renderer.resetCameraClippingRange();
+
+        globals.coronal_openGLRenderWindow.modified();
+        globals.coronal_renderWindow.render();
+        globals.genericRenderWindow.getRenderWindow().render();
+    });
+
+});

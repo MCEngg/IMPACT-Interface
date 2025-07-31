@@ -4,7 +4,7 @@ body {
     padding: 0;
     overflow: hidden;
     width: 100%;
-    height: 100%;
+    height: 100vh;
     justify-content: center;
     align-items: center;
 }
@@ -17,7 +17,7 @@ body {
 }
 
 /* Control Styles */
-#controls{
+#controls {
     flex: 0 0 250px;
     background: rgb(10, 54, 74);
     color: white;
@@ -30,7 +30,7 @@ body {
 
 #controls label,
 #controls input,
-#controls button{
+#controls button {
     margin-bottom: 10px;
 }
 
@@ -39,24 +39,32 @@ body {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
     min-width: 0;
 }
 
 /* 3D Render Styles */
-#vtk-vol_container{
+#vtk-vol_container {
     flex: 1;
     background: rgb(8, 79, 111);
     position: relative;
     z-index: 1;
+    min-height: 0;
+}
+
+#vol-slice-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+    width: 100%;
+    height: 100%;
+    gap: 0px;
 }
 
 /* Slice Styles */
-#sliceRow {
+/* #sliceRow {
     display: grid;
     grid-template-columns: auto auto auto;
-    height: 50%;
-    /* width: 100%; */
     background: rgb(9, 85, 120);
     z-index: 2;
     gap: 0;
@@ -64,23 +72,23 @@ body {
     margin: 0;
     border-color: black;
     mask-border-width: 1px;
-}
+} */
 
 .slice-view {
-    flex: 1;
-    border: 1px solid rgb(9, 85, 120);
+    height: 100%;
+    width: 100%;
     box-sizing: border-box;
-    position: relative;
-    width: 33%;
-    min-height: 100%;
+    overflow: hidden;
+    min-height: 0;
 }
 
 .sliceColumn {
-    display: grid;
-    grid-template-rows: auto auto auto;
+    display: none;
+    grid-template-rows: auto 1fr;
     gap: 0;
     padding: 0;
     margin: 0;
+    min-height: 0;
 }
 
 .sliceLabel {
@@ -89,6 +97,7 @@ body {
     margin: 0;
     font-size: 100%;
     width: 100%;
+    height: 20px;
 }
 
 #AxialSlice {
@@ -131,6 +140,17 @@ body {
 }
 
 /* 2D Render Styles */
+#twoD-main-container {
+    flex: 1 1 auto;
+    background: rgb(9, 85, 120);
+    display: none;
+    flex-direction: row;
+    height: 100%;
+    min-width: 0;
+    gap: 0;
+    padding: 0;
+}
+
 #twoD-render-area {
     flex: 1 1 auto;
     background: rgb(9, 85, 120);
@@ -138,12 +158,12 @@ body {
     flex-direction: column;
     height: 100%;
     min-width: 0;
+    max-width: 80%;
     gap: 0;
     padding: 0;
 }
 
 #twoD-render-area canvas {
-    max-width: 80%;
     height: 95%;
     border: 1px solid #ccc;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
@@ -152,18 +172,24 @@ body {
     padding: 0;
 }
 
-#twoD-controls{
+#twoD-controls {
     display: flex;
     height: 20px;
     width: 100%;
     background: rgb(9, 85, 120);
     flex-direction: row;
-    justify-content: left;
+    justify-content: space-evenly;
     gap: 0;
     padding: 0;
-
 }
 
-#twoD-play-pause{
+#twoD-play-pause {
     width: 60px;
+}
+
+/* 2D Annotation Panel */
+#annotation-details {
+    display: flex;
+    flex-direction: column;
+    color: white;
 }

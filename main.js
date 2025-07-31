@@ -8,11 +8,10 @@ import { pause, play, disableTwoD } from './twoDRendering.js';
 import { renderVolume, disableThreeD } from './volumeRendering.js';
 
 // Slice View Globals.
-import { closeSliceViews, initializeSliceViews, updateSliceViews } from './sliceRendering.js';
+import { closeSliceViews, initializeSliceViews, restoreSliceRendering, updateSliceViews } from './sliceRendering.js';
 
 // ITK Import
 import { readImageDicomFileSeries } from 'https://cdn.jsdelivr.net/npm/@itk-wasm/dicom@latest/dist/bundle/index-worker-embedded.min.js';
-// import { readImage } from 'https://cdn.jsdelivr.net/npm/@itk-wasm/image-io@latest/dist/bundle/index-worker-embedded.min.js';
 
 // DOM Load confirmation and website initialization.
 window.addEventListener('DOMContentLoaded', () => {
@@ -61,8 +60,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if(globals.isSliceMode){
             const sliders = document.getElementById('slice-sliders');
             const vol_container = document.getElementById('vtk-vol_container');
-            const slice_container = document.getElementById('sliceRow');
-            closeSliceViews(vol_container, slice_container, sliders);
+            closeSliceViews(vol_container, sliders);
         }
 
         // Initialize 2D environment.
@@ -104,7 +102,11 @@ window.addEventListener('DOMContentLoaded', () => {
         // Add in canvas and hide 3D renderer.
         document.getElementById('twoD-render-area').insertBefore(globals.canvas, document.getElementById('twoD-controls'));
         document.getElementById('render-area').style.display = "none";
+        document.getElementById('twoD-main-container').style.display = "flex";
         document.getElementById('twoD-render-area').style.display = "flex";
+
+        // NEED TO CHANGE THIS, TWOD RENDER AREA IS NOT ALIGNING WITH THE CANVAS WIDTH
+        document.getElementById('twoD-render-area').style.width = document.getElementById('twoD-canvas').clientWidth;
         globals.ctx = globals.canvas.getContext('2d');
 
         globals.imageObjects = new Array(globals.frameCount);
@@ -136,19 +138,13 @@ window.addEventListener('DOMContentLoaded', () => {
             globals.canvas.height = globals.imageObjects[0].height;
             document.getElementById('twoD-slider').max = globals.frameCount - 1;            
             // Set Slider width to video width.
-            document.getElementById('twoD-slider').style.width = (document.getElementById('twoD-canvas').clientWidth - 60) + 'px';
+            document.getElementById('twoD-slider').style.width = (document.getElementById('twoD-render-area').clientWidth - 300) + 'px';
 
             // Start playback.
             play();
 
         });
 
-    });
-
-    // 2D DICOM PLAY/PAUSE BUTTON LOGIC ----------------------------------------------------------
-    document.getElementById('twoD-play-pause').addEventListener("click", () => {
-        if (globals.isPlaying) pause();
-        else play();
     });
 
     // MULTI-DICOM SERIES FILE INPUT LOGIC (3D DICOM) --------------------------------------------
@@ -173,7 +169,6 @@ window.addEventListener('DOMContentLoaded', () => {
         // Set Disp Volume Checkbox to checked and slices box to not checked
         document.getElementById('dispVolBox').checked = true;
         document.getElementById('dispSlicesBox').checked = false;
-        document.getElementById('vtk-vol_container').style.display = "block";
         disableTwoD();
         console.log("Disabled 2D");
         document.getElementById('render-area').style.display = "flex";
@@ -205,7 +200,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 // Read the whole series into image.        
                 try {
-                    console.log('Starting to load DICOM series...');
                     const { outputImage, webWorkerPool } = await readImageDicomFileSeries({ inputImages: dicomFiles, numberOfWorkers: 1, });
                     webWorkerPool.terminateWorkers();
                     globals.itkImage = outputImage;
@@ -214,7 +208,6 @@ window.addEventListener('DOMContentLoaded', () => {
                     throw err; // rethrow if needed
                 }
                 
-                console.log("FINISHED LOADING")
             }
 
             // Ensure that image has data.
@@ -226,7 +219,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // Render volume.
             renderVolume(globals.itkImage);
-
         }
 
         catch (error) {
@@ -251,7 +243,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     });
 
-    // SINGLE FILE INPUT LOGIC (NRRD/3D DICOM) --------------------------------------------------
+    // SINGLE FILE INPUT LOGIC (3D DICOM) --------------------------------------------------
     const fileInput = document.getElementById('fileInput');
     
     if(!fileInput){
@@ -269,58 +261,35 @@ window.addEventListener('DOMContentLoaded', () => {
         // Set Disp Volume Checkbox to checked and slices box to not checked
         document.getElementById('dispVolBox').checked = true;
         document.getElementById('dispSlicesBox').checked = false;
-        document.getElementById('vtk-vol_container').style.display = "block";
+        document.getElementById('vtk-vol_container').style.display = "block";        
         disableTwoD();
         document.getElementById('render-area').style.display = "flex";
 
         // Alert user.
-        if(!file || !(file.name.endsWith('.nrrd') || file.name.endsWith('.dcm') || file.name.endsWith('.dicom'))){
-            alert(`Please select a valid file: .nrrd, .dcm, or .dicom files.`);
+        if(!file || !(file.name.endsWith('.dcm') || file.name.endsWith('.dicom'))){
+            alert(`Please select a valid DICOM file`);
         }
 
         // Default when loading new volume is that it is displayed and that slices are not displayed.
         document.getElementById('dispVolBox').checked = true;
         document.getElementById('dispSlicesBox').checked = false;
 
-        // NRRD FILE LOGIC ----------------------------------------------------------------------
-        if (file.name.endsWith('.nrrd')) {
-            console.log("NRRD Functionality Disabled, Please use DICOM Series");
-            // console.log("Starting to load NRRD File...")
-
-            // // // Read NRRD with ITK-Wasm
-            // const { outputImage, webWorkerPool } = await readImage({ serializedFile: [file], numberOfWorkers: 1 });
-            
-            // webWorkerPool.terminateWorkers();
-            // globals.itkImage = outputImage;
-
-            // // Update boolean
-            // globals.loaded_new = true;
-
-            // // Render volume.
-            // renderVolume(globals.itkImage);
-
-        }
-
         // SINGLE DICOM FILE LOGIC --------------------------------------------------------------
-        if (file.name.endsWith('.dcm') || file.name.endsWith('.dicom')){
 
-            console.log("HERE");
-
-            if (!(file instanceof File)){
-                throw new TypeError("Expected a File object");
-            }
-
-            // 3D Volume
-            // Read in data into image variable, itkImage reference.
-            const { outputImage, webWorkerPool } = await readImageDicomFileSeries({ inputImages: [file], numberOfWorkers: 1 });
-            webWorkerPool.terminateWorkers();
-            globals.itkImage = outputImage;
-
-            globals.loaded_new = true;
-
-            // Render the volume.
-            renderVolume(globals.itkImage);
+        if (!(file instanceof File)){
+            throw new TypeError("Expected a File object");
         }
+
+        // 3D Volume
+        // Read in data into image variable, itkImage reference.
+        const { outputImage, webWorkerPool } = await readImageDicomFileSeries({ inputImages: [file], numberOfWorkers: 1 });
+        webWorkerPool.terminateWorkers();
+        globals.itkImage = outputImage;
+
+        globals.loaded_new = true;
+
+        // Render the volume.
+        renderVolume(globals.itkImage);
 
         const resizeObserver = new ResizeObserver(() => {
             // Reset cameras and rerender.
@@ -351,10 +320,10 @@ window.addEventListener('DOMContentLoaded', () => {
         // Get Containers
         const sliders = document.getElementById('slice-sliders');
         const vol_container = document.getElementById('vtk-vol_container');
-        const slice_container = document.getElementById('sliceRow');
         const axial_container = document.getElementById('AxialSlice');
         const sagittal_container = document.getElementById('SagittalSlice');
         const coronal_container = document.getElementById('CoronalSlice');
+        const view_grid = document.getElementById('vol-slice-grid');
 
         globals.isSliceMode = !globals.isSliceMode;
         
@@ -364,14 +333,22 @@ window.addEventListener('DOMContentLoaded', () => {
             // Enable sliders.
             sliders.style.display = 'block';
 
+            // Set grid to 2x2
+            view_grid.style.gridTemplateColumns = "1fr 1fr";
+            view_grid.style.gridTemplateRows = "1fr 1fr";
+
             // Set new constrains to volume window.
-            vol_container.style.width = '100vw';
-            vol_container.style.height = '50vh';
             vol_container.style.flex = '1';
+
+            // Set Slice Columns to grids.
+            for (const column of document.getElementsByClassName('sliceColumn')) {
+                column.style.display = 'grid';
+            }
+
+            // Set containers to blocks.
             axial_container.style.display = 'block';
             sagittal_container.style.display = 'block';
             coronal_container.style.display = 'block';
-            slice_container.style.display = 'grid';
 
             // Render windows dont exist yet so, complete setup.
             if (!globals.axial_renderWindow){
@@ -381,240 +358,24 @@ window.addEventListener('DOMContentLoaded', () => {
             else if (globals.axial_renderWindow && globals.loaded_new){
                 updateSliceViews(globals.vtkImage);
             }
+
+            // If the axial actor already exists then we need to re-display them.
+            if (globals.axial_actor){
+                globals.axial_renderer.addActor(globals.axial_actor);
+                globals.sagittal_renderer.addActor(globals.sagittal_actor);
+                globals.coronal_renderer.addActor(globals.coronal_actor);
+            }
+
             
         } else {
             console.log('Closing Slice Views');
-
-            closeSliceViews(vol_container, slice_container, sliders);
+            closeSliceViews(vol_container, sliders);
         }
-
+        
         // Reset camera position to default
         globals.genericRenderWindow.resize();
         globals.renderer.resetCamera();
         globals.renderWindow.render();
-
-    });
-
-    // CHECKBOX LOGIC --------------------------------------------------------------------------
-    
-    // Slices Checkbox logic
-    document.getElementById('dispSlicesBox').addEventListener('click', () => {
-        // Grab the display checkbox.
-        const displayBox = document.getElementById('dispSlicesBox');
-
-        // Display logic.
-        if (displayBox.checked){
-            if (globals.axial_actor) globals.renderer.addActor(globals.axial_actor);
-            if (globals.sagittal_actor) globals.renderer.addActor(globals.sagittal_actor);
-            if (globals.coronal_actor) globals.renderer.addActor(globals.coronal_actor);
-        }
-        else{
-            if (globals.axial_actor) globals.renderer.removeActor(globals.axial_actor);
-            if (globals.sagittal_actor) globals.renderer.removeActor(globals.sagittal_actor);
-            if (globals.coronal_actor) globals.renderer.removeActor(globals.coronal_actor);
-        }
-
-        globals.genericRenderWindow.getRenderWindow().render();  
-    });
-
-    // Volume Checkbox logic
-    document.getElementById('dispVolBox').addEventListener('click', () => {
-        // Grab the volume checkbox.
-        const volBox = document.getElementById('dispVolBox');
-
-        // Display Logic
-        if (volBox.checked && (globals.volumeActor != null)){
-            globals.renderer.addActor(globals.volumeActor);
-        }
-        else if (!volBox.checked && (globals.volumeActor != null)){
-            globals.renderer.removeActor(globals.volumeActor);
-        }
-
-        globals.genericRenderWindow.getRenderWindow().render();  
-    });
-    
-    // SLIDER LOGIC -----------------------------------------------------------------------------
-
-    // Axial Slider logic
-    document.getElementById('ax_slider').addEventListener('input', (event) => {
-        const spacing = globals.vtkImage.getSpacing();
-        const origin = globals.vtkImage.getOrigin();
-        const zIndex = Number(event.target.value);
-        const zCoord = origin[2] + zIndex * spacing[2];
-        globals.axial_Plane.setOrigin(origin[0], origin[1], zCoord);
-        
-        requestAnimationFrame(() => {
-            globals.axial_renderWindow.render();
-            globals.genericRenderWindow.getRenderWindow().render();
-        });
-        
-    });
-
-    // Sagittal Slider logic
-    document.getElementById('sa_slider').addEventListener('input', (event) => {
-        const spacing = globals.vtkImage.getSpacing();
-        const origin = globals.vtkImage.getOrigin();
-        const xIndex = Number(event.target.value);
-        const xCoord = origin[0] + xIndex * spacing[0];
-        globals.sagittal_Plane.setOrigin(xCoord, origin[1], origin[2]);
-        
-        requestAnimationFrame(() => {
-            globals.sagittal_renderWindow.render();
-            globals.genericRenderWindow.getRenderWindow().render();
-        });
-
-    });
-
-    // Coronal Slider logic
-    document.getElementById('cor_slider').addEventListener('input', (event) => {
-        const spacing = globals.vtkImage.getSpacing();
-        const origin = globals.vtkImage.getOrigin();
-        const yIndex = Number(event.target.value);
-        const yCoord = origin[1] + yIndex * spacing[1];
-        globals.coronal_Plane.setOrigin(origin[0], yCoord, origin[2]);
-        
-        requestAnimationFrame(() => {
-            globals.coronal_renderWindow.render();
-            globals.genericRenderWindow.getRenderWindow().render();
-        });
-
-    });
-
-    // 2D DICOM Video Slider Logic
-    document.getElementById('twoD-slider').addEventListener('input', (event) => {
-        pause();
-        globals.frameIndex = parseInt(event.target.value);
-        globals.ctx.clearRect(0, 0, globals.canvas.width, globals.canvas.height);
-        globals.ctx.drawImage(globals.imageObjects[globals.frameIndex], 0, 0);
-    });
-
-
-    // SCROLL SLIDER UPDATES LOGIC ----------------------------------------------------------------
-    
-    // Axial Slice
-    document.getElementById('AxialSlice').addEventListener('wheel', (event) => {
-        event.preventDefault();
-
-        const spacing = globals.vtkImage.getSpacing();     // Spacing Values: [sx, sy, sz].
-        const origin = globals.vtkImage.getOrigin();       // Origin Coordinates: [ox, oy, oz].
-        const extent = globals.vtkImage.getExtent();       // Min/Max Values: [xmin, xmax, ymin, ymax, zmin, zmax].
-        const planeOrigin = globals.axial_Plane.getOrigin();
-
-        // Current index along Z
-        let currentIdx = Math.round((planeOrigin[2] - origin[2]) / spacing[2]);
-
-        const delta = Math.sign(event.deltaY);
-        const minIdx = extent[4]; // zmin value.
-        const maxIdx = extent[5]; // zmax value.
-
-        // Clamp new index
-        let newIdx = Math.min(Math.max(currentIdx + delta, minIdx), maxIdx);
-        let newZ = origin[2] + newIdx * spacing[2];
-
-        // Set new origin for the axial plane (z-axis moves)
-        globals.axial_Plane.setOrigin(planeOrigin[0], planeOrigin[1], newZ);
-
-        // Update slider
-        const slider = document.getElementById('ax_slider');
-        if (slider) slider.value = newIdx;
-
-        // Render ONLY the axial window
-        requestAnimationFrame(() => {
-            globals.axial_openGLRenderWindow.modified();   // ensure the render window notices the update.
-            globals.axial_renderWindow.render();           
-            globals.genericRenderWindow.getRenderWindow().render();
-        });
-
-    });
-
-    // Sagittal Slice
-    document.getElementById('SagittalSlice').addEventListener('wheel', (event) => {
-        event.preventDefault();
-
-        const spacing = globals.vtkImage.getSpacing();     // Spacing Values: [sx, sy, sz].
-        const origin = globals.vtkImage.getOrigin();       // Origin Coordinates: [ox, oy, oz].
-        const extent = globals.vtkImage.getExtent();       // Index Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
-        const bounds = globals.vtkImage.getBounds();       // Image Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
-        const planeOrigin = globals.sagittal_Plane.getOrigin();
-
-        // Current index along X (sagittal).
-        let currentIdx = Math.round((planeOrigin[0] - origin[0]) / spacing[0]);
-
-        const delta = Math.sign(event.deltaY);
-        const minIdx = extent[0]; // xmin
-        const maxIdx = extent[1]; // xmax
-
-        // Compute new index and clamp.
-        let newIdx = Math.min(Math.max(currentIdx + delta, minIdx), maxIdx);
-
-        // Compute world coordinate X position for the new slice.
-        let newX = origin[0] + newIdx * spacing[0];
-
-        // Clamp newX to data bounds (world space)
-        // Take the max of the new position and the minimum bound.
-        // Then take the minimum of the new position and the maximum bound.
-        newX = Math.min(Math.max(newX, bounds[0]), bounds[1]);
-
-        // Update plane.
-        globals.sagittal_Plane.setOrigin(newX, planeOrigin[1], planeOrigin[2]);
-
-        // Update HTML slider (make sure it's an int).
-        const slider = document.getElementById('sa_slider');
-        if (slider) slider.value = newIdx.toString();
-
-        // Trigger render.
-        requestAnimationFrame(() => {
-            globals.sagittal_renderer.resetCamera();
-            globals.sagittal_openGLRenderWindow.modified();
-            globals.sagittal_renderWindow.render();
-            globals.genericRenderWindow.getRenderWindow().render()
-        });
-
-    });
-
-    // Coronal Slice
-    document.getElementById('CoronalSlice').addEventListener('wheel', (event) => {
-        event.preventDefault();
-
-        const spacing = globals.vtkImage.getSpacing();     // Spacing Values: [sx, sy, sz].
-        const origin = globals.vtkImage.getOrigin();       // Origin Coordinates: [ox, oy, oz].
-        const extent = globals.vtkImage.getExtent();       // Index Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
-        const bounds = globals.vtkImage.getBounds();       // Image Min/Max: [xmin, xmax, ymin, ymax, zmin, zmax].
-        const planeOrigin = globals.coronal_Plane.getOrigin();
-
-        // Current index along Y (coronal).
-        let currentIdx = Math.round((planeOrigin[1] - origin[1]) / spacing[1]);
-
-        const delta = Math.sign(event.deltaY);
-        const minIdx = extent[2]; // ymin
-        const maxIdx = extent[3]; // ymax
-
-        // Compute new index and clamp.
-        let newIdx = Math.min(Math.max(currentIdx + delta, minIdx), maxIdx);
-
-        // Compute world coordinate Y position for the new slice.
-        let newY = origin[1] + newIdx * spacing[1];
-
-        // Clamp newY to data bounds (world space)
-        // Take the max of the new position and the minimum bound.
-        // Then take the minimum of the new position and the maximum bound.
-        newY = Math.min(Math.max(newY, bounds[2]), bounds[3]);
-
-        // Update plane.
-        globals.coronal_Plane.setOrigin(planeOrigin[0], newY , planeOrigin[2]);
-
-        // Update HTML slider (make sure it's an int).
-        const slider = document.getElementById('cor_slider');
-        if (slider) slider.value = newIdx.toString();
-
-        // Trigger render.
-        requestAnimationFrame(() => {
-            globals.coronal_renderer.resetCamera();
-            globals.coronal_openGLRenderWindow.modified();
-            globals.coronal_renderWindow.render();
-            globals.genericRenderWindow.getRenderWindow().render()
-        });
-
 
     });
 
