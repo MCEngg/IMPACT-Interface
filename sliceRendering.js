@@ -136,6 +136,7 @@ export function initializeSliceViews(vtkImage) {
 
 }
 
+// RENDER SETUP HELPER FUNCTION ---------------------------------------------------------------
 export function renderSetup(min, max, actor, renderer){
     
     // Set Colour Levels.
@@ -168,7 +169,6 @@ export function sliceSetup(renderWindow, gl_Window, renderer, container, plane, 
     // Add actor to renderer.
     renderer.addActor(actor);
 }
-
 
 // UPDATE SLIDER RANGES LOGIC -----------------------------------------------------------------
 export function updateSliderRanges(vtkImage) {

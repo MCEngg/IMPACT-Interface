@@ -2,13 +2,16 @@
 import { globals } from './globals.js';
 
 // 2D View Globals.
-import { pause, play, disableTwoD } from './twoDRendering.js';
+import { pause, play, disableTwoD, clearFrameMemory } from './twoDRendering.js';
 
 // 3D View Globals.
 import { renderVolume, disableThreeD } from './volumeRendering.js';
 
 // Slice View Globals.
 import { closeSliceViews, initializeSliceViews, updateSliceViews } from './sliceRendering.js';
+
+// Annotation Globals.
+import {  } from './annotations.js';
 
 // ITK Import
 import { readImageDicomFileSeries } from 'https://cdn.jsdelivr.net/npm/@itk-wasm/dicom@latest/dist/bundle/index-worker-embedded.min.js';
@@ -55,7 +58,7 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 
     singleFileInput.addEventListener('change', async (event) => {
-        
+
         // Close Slice Views if open.
         if(globals.isSliceMode){
             const sliders = document.getElementById('slice-sliders');
@@ -63,13 +66,19 @@ window.addEventListener('DOMContentLoaded', () => {
             closeSliceViews(vol_container, sliders);
         }
 
+        // Clear old pre-existing 2D frame memory.
+        clearFrameMemory();
+
         // Initialize 2D environment.
         disableThreeD();
         pause();
         document.getElementById('twoD-controls').style.display = "flex";
         
         // If there is already a canvas, delete it before adding a new one.
-        if (document.getElementById('twoD-canvas') != null) document.getElementById('twoD-canvas').remove();
+        if (document.getElementById('twoD-canvas') != null){
+            document.getElementById('twoD-canvas').remove();
+            document.getElementById('annotation-canvas').remove();
+        } 
         
         const file = event.target.files[0];
 
@@ -100,17 +109,26 @@ window.addEventListener('DOMContentLoaded', () => {
             globals.canvas = document.createElement('canvas');
             globals.canvas.id = "twoD-canvas";
 
-            // Add in canvas and hide 3D renderer.
-            document.getElementById('twoD-render-area').insertBefore(globals.canvas, document.getElementById('twoD-controls'));
+            // Create Annotation Canvas
+            globals.annotation_canvas = document.createElement('canvas');
+            globals.annotation_canvas.id = "annotation-canvas";
+
+            // Add in canvas and hide 3D renderer. Insert rendering canvas before controls and annotation canvas after rendering canvas.
+            document.getElementById('canvas-wrapper').appendChild(globals.canvas);
+            document.getElementById('canvas-wrapper').insertBefore(globals.annotation_canvas, globals.canvas);
+
+            // Display and hide elements.
             document.getElementById('render-area').style.display = "none";
             document.getElementById('twoD-main-container').style.display = "flex";
             document.getElementById('twoD-render-area').style.display = "flex";
 
-            // NEED TO CHANGE THIS, TWOD RENDER AREA IS NOT ALIGNING WITH THE CANVAS WIDTH
-            document.getElementById('twoD-render-area').style.width = document.getElementById('twoD-canvas').clientWidth;
+            // Get contexts for canvas'.
             globals.ctx = globals.canvas.getContext('2d');
+            globals.annotation_ctx = globals.annotation_canvas.getContext('2d');
+
 
             globals.imageObjects = new Array(globals.frameCount);
+            globals.urls = new Array(globals.frameCount);
 
             // Load image data into a URL JPEG blob.
             for (let i = 0; i < globals.frameCount; i++) {
@@ -122,6 +140,7 @@ window.addEventListener('DOMContentLoaded', () => {
                 const img = new Image();
                 img.src = url;
                 globals.imageObjects[i] = img;
+                globals.urls[i] = url;
             }
 
             // Ensure all images are loaded correctly.
@@ -137,8 +156,17 @@ window.addEventListener('DOMContentLoaded', () => {
                 // Assign canvas dimentsions and max slider value.
                 globals.canvas.width = globals.imageObjects[0].width;
                 globals.canvas.height = globals.imageObjects[0].height;
+                
+                globals.annotation_canvas.width = globals.canvas.width;
+                globals.annotation_canvas.height = globals.canvas.height;
+
+                document.getElementById('canvas-wrapper').style.height = `${globals.canvas.height}px`;
+                document.getElementById('canvas-wrapper').style.width = `${globals.canvas.width}px`;
+                
+                document.getElementById('twoD-render-area').style.width = `${document.getElementById('twoD-canvas').clientWidth}px`;
+
+                // Setup slider.
                 document.getElementById('twoD-slider').max = globals.frameCount - 1;
-                // Set Slider width to video width.
                 document.getElementById('twoD-slider').style.width = (document.getElementById('twoD-render-area').clientWidth - 300) + 'px';
 
                 // Start playback.

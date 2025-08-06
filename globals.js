@@ -20,6 +20,24 @@ export const globals = {
     canvas: null,
     imageObjects: null,
     is2dMode: false,
+    urls: null,
+
+    // Annotation Globals.
+    annotation_canvas: null,
+    annotation_ctx: null,
+
+    show_annotations: true,
+    selected_annotation: false,
+    anno_designator: null,
+
+    annotating: false,
+    boxAnnotating: false,
+    bounds_selected: 0,
+    
+    box_id: 0,
+    polygon_id: 0,
+
+    
 
     // Slice Rendering Globals.
     loaded_new: false,

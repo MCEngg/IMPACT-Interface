@@ -18,7 +18,7 @@ body {
 
 /* Control Styles */
 #controls {
-    flex: 0 0 250px;
+    flex: 0 0 230px;
     background: rgb(10, 54, 74);
     color: white;
     padding: 10px;
@@ -32,6 +32,10 @@ body {
 #controls input,
 #controls button {
     margin-bottom: 10px;
+}
+
+#warningLog {
+    color: red;
 }
 
 /* Main Render Area Styles */
@@ -62,18 +66,6 @@ body {
 }
 
 /* Slice Styles */
-/* #sliceRow {
-    display: grid;
-    grid-template-columns: auto auto auto;
-    background: rgb(9, 85, 120);
-    z-index: 2;
-    gap: 0;
-    padding: 0;
-    margin: 0;
-    border-color: black;
-    mask-border-width: 1px;
-} */
-
 .slice-view {
     height: 100%;
     width: 100%;
@@ -152,25 +144,26 @@ body {
 }
 
 #twoD-render-area {
-    flex: 1 1 auto;
+    flex: 0 0 auto;
     background: rgb(9, 85, 120);
     display: none;
     flex-direction: column;
-    height: 100%;
+    /* height: 100%; */
     min-width: 0;
-    max-width: 80%;
+    /* max-width: 80%; */
     gap: 0;
     padding: 0;
+    /* position: relative; */
 }
 
-#twoD-render-area canvas {
+/* #twoD-render-area canvas {
     height: 95%;
     border: 1px solid #ccc;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     margin-bottom: 10px;
     gap: 0;
     padding: 0;
-}
+} */
 
 #twoD-controls {
     display: flex;
@@ -181,6 +174,7 @@ body {
     justify-content: space-evenly;
     gap: 0;
     padding: 0;
+    z-index: 0;
 }
 
 #twoD-play-pause {
@@ -189,7 +183,74 @@ body {
 
 /* 2D Annotation Panel */
 #annotation-details {
+    overflow-y: auto;
+    max-height: 100%;
+    height: auto;
+    width: 100%;
+    flex: 0 1 auto;
+       
+}
+
+#annotation-tools {
     display: flex;
     flex-direction: column;
+    gap: 0;
+    padding: 0;
+    width: 100%;
+
+}
+
+#annotation-table {
+    width: 100%;
+    height: auto;
+    max-height: 100%;
+    overflow-y: auto;
     color: white;
+    
+    tr:hover { 
+        background-color: #d7dede;
+        color: black;
+    };
+
+    
+}
+
+#ac1 {
+    width: 20%;
+}
+
+#ac2 {
+    width: 40%;
+}
+
+
+#table,th,tr,td {
+    border: 1px solid white;
+    border-collapse: collapse;
+}
+
+/* 2D Canvas' */
+#canvas-wrapper {
+    position: relative;
+    display: inline-block;
+    /* flex: 1 1 auto; */
+    /* width: auto;
+    height: auto; */
+}
+
+#twoD-canvas {
+    z-index: 0;
+}
+
+#annotation-canvas {
+    z-index: 1;
+    pointer-events: auto;
+}
+
+#twoD-canvas, #annotation-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* height: 100%;
+    width: 100% */
 }

@@ -64,6 +64,9 @@
                         
                         
                     </div>
+
+                    <br>
+                    <p id="warningLog"></p>
                 
                 </div>
             </div>
@@ -72,6 +75,9 @@
             <div id="twoD-main-container">
 
                 <div id="twoD-render-area">
+                    <div id="canvas-wrapper">
+
+                    </div>
                     <div id="twoD-controls">
                         <button id="twoD-play-pause">Play/Pause</button>
                         <input type="range" id="twoD-slider" style="width: 100%;" />
@@ -86,10 +92,34 @@
                             <option value="20">20</option>
                         </select>
                     </div>
+                    <div id="annotation-tools">
+                        <div>
+                            <input type="checkbox" id="dispAnno" name="dispAnnoBox" value="displayAnno" checked>
+                            <label for="dispAnno" style="color: white;">Display Annotations</label>
+                        </div>
+                        
+                        <div>
+                            <label for="bounding-box-button" style="color: white;">Bounding Box (B):</label>
+                            <button id="bounding-box-button"><img src="./images/bounding_box_icon.jpeg" style="width: 10px; height: 10px;"></button>
+                            <!-- <button id="bounding-multi-frame"><img src="./images/bounding_box_multi_frame.jpeg" style="width: 10px; height: 10px;"></button> -->
+                        </div>
+                    </div>
+
+
                 </div>
 
                 <div id="annotation-details">
-                    
+                    <table id="annotation-table">
+   
+                        <tr id="header-row">
+                            <th id="ac1">Type</th>
+                            <th id="ac2">Name</th>
+                            <th id="ac3">ID</th>
+                            <th id="ac4">Frame</th>
+                            <th id="ac5">ABN</th>
+                        </tr>
+                        
+                    </table>
                 </div>
 
             </div>

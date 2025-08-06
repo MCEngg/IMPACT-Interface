@@ -1,12 +1,26 @@
+import { redrawAnnotations } from "./annotations.js";
 import { globals } from "./globals.js";
 import { closeSliceViews } from "./sliceRendering.js";
 
 // 2D DICOM VIDEO SLIDER LOGIC ----------------------------------------------------------------
 document.getElementById('twoD-slider').addEventListener('input', (event) => {
     pause();
+
+    // Assign new frameIndex.
     globals.frameIndex = parseInt(event.target.value);
+
+    // Clear canvas and draw new image.
     globals.ctx.clearRect(0, 0, globals.canvas.width, globals.canvas.height);
     globals.ctx.drawImage(globals.imageObjects[globals.frameIndex], 0, 0);
+
+    // Update frame label.
+    document.getElementById('frameCounter').textContent = `Frame: ${globals.frameIndex+1}/${globals.frameCount}`;
+
+    if(globals.show_annotations){
+        // Draw all frame level annotations.
+        redrawAnnotations();
+    }
+
 });
 
 // 2D START PLAYBACK LOGIC --------------------------------------------------------------------
@@ -15,6 +29,7 @@ export function play() {
     document.getElementById('twoD-play-pause').textContent = "Pause";
 
     globals.animationInterval = setInterval(() => {
+        
         // Destructure globals object (redeclares variables). 
         const { ctx, canvas, imageObjects, frameCount } = globals;
         // Clear the canvas.
@@ -25,10 +40,15 @@ export function play() {
         globals.frameIndex = (globals.frameIndex + 1) % frameCount;
 
         // Adjust frame Counter.
-        document.getElementById('frameCounter').textContent = `Frame: ${globals.frameIndex}/${frameCount}`;
+        document.getElementById('frameCounter').textContent = `Frame: ${globals.frameIndex+1}/${frameCount}`;
 
         // Adjust slider position.
         document.getElementById('twoD-slider').value = globals.frameIndex;
+
+        if (globals.show_annotations) {
+            // Draw all frame level annotations.
+            redrawAnnotations();
+        }
     }, 1000 / globals.fps);
 }
 
@@ -59,6 +79,7 @@ export function disableTwoD() {
         
         // Remove canvas, controls, and annotations.
         document.getElementById('twoD-canvas').remove();
+        document.getElementById('annotation-canvas').remove();
         document.getElementById('twoD-controls').style.display = "none";
         document.getElementById('twoD-main-container').style.display = "none";
         document.getElementById('annotation-details').style.display = "none";
@@ -86,5 +107,26 @@ document.getElementById('fps-Selector').addEventListener('change', () => {
 // 2D DICOM PLAY/PAUSE BUTTON LOGIC ----------------------------------------------------------
 document.getElementById('twoD-play-pause').addEventListener("click", () => {
     if (globals.isPlaying) pause();
-    else play();
+    else if (!globals.isPlaying && !globals.annotating) play();
 });
+
+// RECOVER FRAME MEMORY LOGIC ----------------------------------------------------------------
+export function clearFrameMemory(){
+    
+    // Dereference all imageObjects.
+    if (globals.imageObjects) {
+        globals.imageObjects.forEach((img, i) => {
+            globals.imageObjects[i] = null;
+        });
+        globals.imageObjects = null;
+    }
+
+    // Revoke all URLs for images.
+    if (globals.urls) {
+        globals.urls.forEach(url => {
+            URL.revokeObjectURL(url); 
+        });
+        globals.urls.length = 0;
+        globals.urls = null;
+    }
+}
