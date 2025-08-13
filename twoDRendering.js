@@ -1,6 +1,7 @@
-import { redrawAnnotations } from "./annotations.js";
+import { redrawAnnotations } from "./main_anno.js";
 import { globals } from "./globals.js";
 import { closeSliceViews } from "./sliceRendering.js";
+import { drawBoundingBox } from "./box_anno.js";
 
 // 2D DICOM VIDEO SLIDER LOGIC ----------------------------------------------------------------
 document.getElementById('twoD-slider').addEventListener('input', (event) => {
@@ -19,6 +20,11 @@ document.getElementById('twoD-slider').addEventListener('input', (event) => {
     if(globals.show_annotations){
         // Draw all frame level annotations.
         redrawAnnotations();
+
+        if(globals.multiBoxAnnotating && globals.multiPlaced){
+            drawBoundingBox();
+        }
+
     }
 
 });

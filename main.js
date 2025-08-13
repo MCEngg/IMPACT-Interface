@@ -11,7 +11,7 @@ import { renderVolume, disableThreeD } from './volumeRendering.js';
 import { closeSliceViews, initializeSliceViews, updateSliceViews } from './sliceRendering.js';
 
 // Annotation Globals.
-import {  } from './annotations.js';
+import { scroll_2d } from './main_anno.js';
 
 // ITK Import
 import { readImageDicomFileSeries } from 'https://cdn.jsdelivr.net/npm/@itk-wasm/dicom@latest/dist/bundle/index-worker-embedded.min.js';
@@ -171,6 +171,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 // Start playback.
                 play();
+
+                document.getElementById('annotation-canvas').addEventListener('wheel', scroll_2d);
 
             });
         }

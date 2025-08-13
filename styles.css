@@ -233,9 +233,6 @@ body {
 #canvas-wrapper {
     position: relative;
     display: inline-block;
-    /* flex: 1 1 auto; */
-    /* width: auto;
-    height: auto; */
 }
 
 #twoD-canvas {
@@ -251,6 +248,4 @@ body {
     position: absolute;
     top: 0;
     left: 0;
-    /* height: 100%;
-    width: 100% */
 }
