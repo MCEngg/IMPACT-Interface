@@ -350,7 +350,9 @@ document.addEventListener('keyup', (event) => {
         globals.annotation_canvas.removeEventListener('mousemove', mouseMovePolyAnnotate);
         globals.annotation_canvas.removeEventListener('click', placeDataPoint);
 
-        if(globals.oc_polyAnnotation) !globals.oc_polyAnnotation;
+        globals.oc_polyAnnotation = false;
+        
+        console.log(globals.oc_polyAnnotation);
 
 
         // Redraw pre-existing annotations.
@@ -568,8 +570,6 @@ document.addEventListener('mousedown', (event) => {
             globals.lastMouseX = mouseX;
             globals.lastMouseY = mouseY;
         }
-
-
 
     }
 
