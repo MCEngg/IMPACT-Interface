@@ -45,7 +45,7 @@ export function renderVolume(itkImage){
 
     globals.volumeActor = volume;
 
-    volumeInteractorSetup();
+    // volumeInteractorSetup();
 
     // Clear Previous Scene
     globals.renderer.removeAllViewProps();

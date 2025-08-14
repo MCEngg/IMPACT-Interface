@@ -2,7 +2,7 @@ import { globals } from "./globals.js";
 import { determineAnnotationMode, annotations, redrawAnnotations, addAnnotationLog } from "./main_anno.js";
 import { pause } from "./twoDRendering.js";
 
-let poly_dataPoints = [];
+export let poly_dataPoints = [];
 
 // POLYGON BUTTON LOGIC ------------------------------------------------------------------------
 document.getElementById('polygon-button').addEventListener('click', async(event) => {
@@ -49,43 +49,14 @@ export function placeDataPoint(event){
 
         globals.annotation_canvas.addEventListener('mousemove', mouseMovePolyAnnotate);
         
-        let p_type = "";
-        
-        if(globals.oc_polyAnnotation) p_type = "oc_polygon";
-        else p_type = "polygon";
-
-        annotations.push({
-            type: p_type,
-            annotation_name: "test_polygon",
-            frame: (globals.frameIndex + 1),
-            id: `P${globals.polygon_id}`,
-            abnormal: "NL",
-            dataPoints: poly_dataPoints.slice(),
-            openCountour: globals.oc_polyAnnotation
-        });
-
-        addAnnotationLog(p_type);
-        
-
     }
     else{
         console.log(annotations);
-        
-        // Find the polygon annotation.
 
-        let index = 0;
-
-        for(let i = 0; i < annotations.length; i++){
-            if(annotations[i].id == `P${globals.polygon_id - 1}`){
-                index = i;
-            }
-        }
-
-        // Push the mouseX and mouseY location as the last known datapoint to draw from.
-        annotations[index].dataPoints.push([mouseX, mouseY]);
         poly_dataPoints.push([mouseX, mouseY]);
 
         redrawAnnotations();
+        redrawPolygon();
 
     }
 
@@ -94,6 +65,7 @@ export function placeDataPoint(event){
 export function mouseMovePolyAnnotate(event){
 
     redrawAnnotations();
+    redrawPolygon();
 
     const rect = globals.annotation_canvas.getBoundingClientRect();
     const mouseX = event.clientX - rect.left;
@@ -115,5 +87,22 @@ export function mouseMovePolyAnnotate(event){
     
     ctx.strokeStyle = "red";
     ctx.stroke();
+
+}
+
+export function redrawPolygon(){
+
+    const ctx = globals.annotation_ctx;
+
+    ctx.beginPath();
+
+    for(let i = 1; i < poly_dataPoints.length; i++){
+        ctx.moveTo(poly_dataPoints[i - 1][0], poly_dataPoints[i - 1][1]);
+        ctx.lineTo(poly_dataPoints[i][0], poly_dataPoints[i][1]);
+    }
+
+    ctx.strokeStyle = "red";
+    ctx.stroke();
+
 
 }

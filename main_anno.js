@@ -1,7 +1,7 @@
 import { globals } from "./globals.js";
 import { pause, play } from "./twoDRendering.js";
 import { mouseMoveBoxAnnotate, annotateBoxes, moveBoxBounds, setBoundsAnnotation, moveBoxAnnotation, setMovedBoxAnnotation, boxBoundsDetection, drawBoundingBox, multiFrame } from "./box_anno.js";
-import { mouseMovePolyAnnotate, placeDataPoint } from "./poly_anno.js";
+import { mouseMovePolyAnnotate, placeDataPoint, poly_dataPoints } from "./poly_anno.js";
 
 // Main annotation list will contain objects consisting of annotation data.
 // Scheme: [annotate_type, annotation_name, frame, data]
@@ -189,7 +189,6 @@ export function addAnnotationLog(type){
         name_cell.innerHTML = "test_polygon";
         id_cell.innerHTML = `P${globals.polygon_id}`;
         frame_cell.innerHTML = `${globals.frameIndex + 1}`;
-        globals.polygon_id += 1;
     }
     else if(type == "multiBox"){
         type_cell.innerHTML = `${type}`;
@@ -202,7 +201,6 @@ export function addAnnotationLog(type){
         name_cell.innerHTML = "test_oc_polygon";
         id_cell.innerHTML = `P${globals.polygon_id}`;
         frame_cell.innerHTML = `${globals.frameIndex + 1}`;
-        globals.polygon_id += 1;
     }
 
     
@@ -217,9 +215,9 @@ export function addAnnotationLog(type){
 // ARROW NAVIGATION LOGIC ----------------------------------------------------------------------
 document.addEventListener('keydown', (event) => {
 
-    pause();
 
     if(event.key.includes("Arrow")){
+        pause();
 
         if (event.key == "ArrowRight" || event.key == "ArrowUp") globals.frameIndex += 1;
 
@@ -291,8 +289,12 @@ document.addEventListener('keyup', (event) => {
     
     // Pause/Play Space Bar Shortcut.
     if(event.key == " " && globals.is2dMode && !globals.annotating){
-        if(globals.isPlaying) pause();
-        else play();
+        
+        if(!globals.selected_annotation){
+            if (globals.isPlaying) pause();
+            else play();
+        }
+        
     }
 
     // Box Annotation Abort.
@@ -350,12 +352,33 @@ document.addEventListener('keyup', (event) => {
         globals.annotation_canvas.removeEventListener('mousemove', mouseMovePolyAnnotate);
         globals.annotation_canvas.removeEventListener('click', placeDataPoint);
 
+        let p_type = "";
+
+        if (globals.oc_polyAnnotation) p_type = "oc_polygon";
+        else p_type = "polygon";
+
+        // If any polygon only has 1 annotation or the regular only has 2, its not a polygon, dont add.
+        if (poly_dataPoints.length == 1 || (poly_dataPoints.length == 2 && !(p_type.includes("oc")))){
+            redrawAnnotations();
+            return;
+        }
+
+        annotations.push({
+            type: p_type,
+            annotation_name: "test_polygon",
+            frame: (globals.frameIndex + 1),
+            id: `P${globals.polygon_id}`,
+            abnormal: "NL",
+            dataPoints: poly_dataPoints.slice(),
+            openCountour: globals.oc_polyAnnotation
+        });
+
+        addAnnotationLog(p_type);
+
+        globals.polygon_id += 1;
         globals.oc_polyAnnotation = false;
-        
-        console.log(globals.oc_polyAnnotation);
 
-
-        // Redraw pre-existing annotations.
+        // Redraw all new and pre-existing annotations.
         redrawAnnotations();
 
     }
@@ -401,7 +424,7 @@ document.addEventListener('keyup', (event) => {
     }
 
     // Annotation Table Selection Abort.
-    if (globals.selected_annotation) {
+    if (globals.selected_annotation && event.key != " ") {
         globals.selected_annotation = false;
         redrawAnnotations();
         console.log("Not Focused on table");
@@ -427,6 +450,8 @@ document.getElementById('dispAnno').addEventListener('click', () => {
 // TABLE INTERACTION LOGIC ---------------------------------------------------------------------
 document.getElementById('annotation-table').addEventListener('mousedown', (event) => {
     
+    pause();
+
     // Grab the closest row with the event.
     selected_row = event.target.closest('tr');
 

@@ -137,6 +137,8 @@ export function multiFrame(event){
 
             addAnnotationLog("multiBox");
 
+            globals.box_id += 1;
+
         }
 
     }
