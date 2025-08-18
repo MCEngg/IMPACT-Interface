@@ -35,9 +35,8 @@ document.getElementById('open-contour-button').addEventListener('click', async(e
 
 export function placeDataPoint(event){
 
-    const rect = globals.annotation_canvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const mouseX = (event.clientX - globals.rect.left) * globals.scaleX;
+    const mouseY = (event.clientY - globals.rect.top) * globals.scaleY;
 
     if(!globals.poly_start_selected){
         
@@ -67,9 +66,9 @@ export function mouseMovePolyAnnotate(event){
     redrawAnnotations();
     redrawPolygon();
 
-    const rect = globals.annotation_canvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const mouseX = (event.clientX - globals.rect.left) * globals.scaleX;
+    const mouseY = (event.clientY - globals.rect.top) * globals.scaleY;
+
     const ctx = globals.annotation_ctx;
 
     const pl = poly_dataPoints.length;

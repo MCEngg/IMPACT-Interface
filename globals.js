@@ -11,6 +11,7 @@ export const globals = {
     vtkImage: null,
 
     // 2D View Globals.
+    pixelDataArrayBuffers: null,
     frameCount: null,
     frameIndex: null,
     isPlaying: false,
@@ -34,6 +35,11 @@ export const globals = {
 
     annotating: false,
 
+    rect: null,
+    scaleX: 0,
+    scaleY: 0,
+
+
     // Box Annotation.
     boxAnnotating: false,
     multiBoxAnnotating: false,
@@ -42,18 +48,14 @@ export const globals = {
     box_bounds_selected: 0,
     box_id: 0,
 
+    lastMouseX: 0,
+    lastMouseY: 0,
+
     // Polygon Annotation.
     polyAnnotating: false,
     oc_polyAnnotation: false,
     poly_start_selected: false,
     polygon_id: 0,
-
-    mouseX: 0,
-    mouseY: 0,
-    lastMouseX: 0,
-    lastMouseY: 0,
-
-    
 
     // Slice Rendering Globals.
     loaded_new: false,

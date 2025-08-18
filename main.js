@@ -2,16 +2,13 @@
 import { globals } from './globals.js';
 
 // 2D View Globals.
-import { pause, play, disableTwoD, clearFrameMemory } from './twoDRendering.js';
+import { pause, play, disableTwoD, scroll_2d, clearFrameMemory, loadFrame, preloadFrames } from './twoDRendering.js';
 
 // 3D View Globals.
 import { renderVolume, disableThreeD } from './volumeRendering.js';
 
 // Slice View Globals.
 import { closeSliceViews, initializeSliceViews, updateSliceViews } from './sliceRendering.js';
-
-// Annotation Globals.
-import { scroll_2d } from './main_anno.js';
 
 // ITK Import
 import { readImageDicomFileSeries } from 'https://cdn.jsdelivr.net/npm/@itk-wasm/dicom@latest/dist/bundle/index-worker-embedded.min.js';
@@ -82,12 +79,12 @@ window.addEventListener('DOMContentLoaded', () => {
         
         const file = event.target.files[0];
 
-        if(!(file.name.endsWith('.dicom') || file.name.endsWith('.dcm') || file.name.endsWith('.mp4'))){
+        if (!(file.name.toLowerCase().endsWith('.dicom') || file.name.toLowerCase().endsWith('.dcm') || file.name.endsWith('.mp4'))){
             alert(`Please select a valid DICOM or MP4 file.`);
             return;
         }
 
-        if(file.name.endsWith('.dicom') || file.name.endsWith('.dcm')){
+        if (file.name.toLowerCase().endsWith('.dicom') || file.name.toLowerCase().endsWith('.dcm')){
             globals.is2dMode = true;
             const arrayBuffer = await file.arrayBuffer();
 
@@ -97,15 +94,16 @@ window.addEventListener('DOMContentLoaded', () => {
 
             // Start at frame 0.
             globals.frameIndex = 0;
-            const pixelDataArrayBuffers = dataset.PixelData;
+            globals.pixelDataArrayBuffers = dataset.PixelData;
+            
 
-            if (!pixelDataArrayBuffers || pixelDataArrayBuffers.length === 0) {
+            if (!globals.pixelDataArrayBuffers || globals.pixelDataArrayBuffers.length === 0) {
                 console.error('No PixelData found.');
                 return;
             }
 
             // Set canvas and DICOM info.
-            globals.frameCount = pixelDataArrayBuffers.length;
+            globals.frameCount = globals.pixelDataArrayBuffers.length;
             globals.canvas = document.createElement('canvas');
             globals.canvas.id = "twoD-canvas";
 
@@ -126,58 +124,47 @@ window.addEventListener('DOMContentLoaded', () => {
             globals.ctx = globals.canvas.getContext('2d');
             globals.annotation_ctx = globals.annotation_canvas.getContext('2d');
 
+            // Fill the frame objects with null values.
+            globals.imageObjects = new Array(globals.frameCount).fill(null);
+            globals.urls = new Array(globals.frameCount).fill(null);
 
-            globals.imageObjects = new Array(globals.frameCount);
-            globals.urls = new Array(globals.frameCount);
+            // Assign canvas dimentsions and max slider value.
 
-            // Load image data into a URL JPEG blob.
-            for (let i = 0; i < globals.frameCount; i++) {
-                const frameBuffer = pixelDataArrayBuffers[i];
-                const blob = new Blob([frameBuffer], { type: 'image/jpeg' });
-                const url = URL.createObjectURL(blob);
+            globals.canvas.width = dataset.Columns;
+            globals.canvas.height = dataset.Rows;
 
-                // Add images into array for storage.
-                const img = new Image();
-                img.src = url;
-                globals.imageObjects[i] = img;
-                globals.urls[i] = url;
-            }
+            globals.annotation_canvas.width = globals.canvas.width;
+            globals.annotation_canvas.height = globals.canvas.height;
 
-            // Ensure all images are loaded correctly.
-            let allLoaded = Promise.all(globals.imageObjects.map(img => {
-                return new Promise(resolve => {
-                    img.onload = resolve;
-                    img.onerror = resolve;
-                });
-            }));
+            globals.canvas.style.width = "1024px";
+            globals.canvas.style.height = "768px";
+            globals.annotation_canvas.style.width = "1024px";
+            globals.annotation_canvas.style.height = "768px";
 
-            // Once all loaded.
-            allLoaded.then(() => {
-                // Assign canvas dimentsions and max slider value.
-                globals.canvas.width = globals.imageObjects[0].width;
-                globals.canvas.height = globals.imageObjects[0].height;
-                
-                globals.annotation_canvas.width = globals.canvas.width;
-                globals.annotation_canvas.height = globals.canvas.height;
+            globals.rect = globals.annotation_canvas.getBoundingClientRect();
 
-                document.getElementById('canvas-wrapper').style.height = `${globals.canvas.height}px`;
-                document.getElementById('canvas-wrapper').style.width = `${globals.canvas.width}px`;
-                
-                document.getElementById('twoD-render-area').style.width = `${document.getElementById('twoD-canvas').clientWidth}px`;
+            globals.scaleX = globals.canvas.width / globals.rect.width;
+            globals.scaleY = globals.canvas.height / globals.rect.height;
 
-                // Setup slider.
-                document.getElementById('twoD-slider').max = globals.frameCount - 1;
-                document.getElementById('twoD-slider').style.width = (document.getElementById('twoD-render-area').clientWidth - 300) + 'px';
+            document.getElementById('canvas-wrapper').style.width = globals.canvas.style.width;
+            document.getElementById('canvas-wrapper').style.height = globals.canvas.style.height;
 
-                // Start playback.
-                play();
+            document.getElementById('twoD-render-area').style.width = `${document.getElementById('twoD-canvas').clientWidth}px`;
 
-                document.getElementById('annotation-canvas').addEventListener('wheel', scroll_2d);
+            // Setup slider.
+            document.getElementById('twoD-slider').max = globals.frameCount - 1;
+            document.getElementById('twoD-slider').style.width = (document.getElementById('twoD-render-area').clientWidth - 300) + 'px';
 
-            });
+            await loadFrame(0);
+            preloadFrames(0);
+
+
+            // Start playback.
+            play();
+
+            document.getElementById('annotation-canvas').addEventListener('wheel', scroll_2d);
+
         }
-
-        
 
     });
 

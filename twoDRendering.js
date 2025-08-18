@@ -4,11 +4,15 @@ import { closeSliceViews } from "./sliceRendering.js";
 import { drawBoundingBox } from "./box_anno.js";
 
 // 2D DICOM VIDEO SLIDER LOGIC ----------------------------------------------------------------
-document.getElementById('twoD-slider').addEventListener('input', (event) => {
+document.getElementById('twoD-slider').addEventListener('input', async (event) => {
     pause();
 
     // Assign new frameIndex.
     globals.frameIndex = parseInt(event.target.value);
+
+    await loadFrame(globals.frameIndex);
+    preloadFrames(globals.frameIndex);
+    evictCache();
 
     // Clear canvas and draw new image.
     globals.ctx.clearRect(0, 0, globals.canvas.width, globals.canvas.height);
@@ -29,15 +33,98 @@ document.getElementById('twoD-slider').addEventListener('input', (event) => {
 
 });
 
+
+// ARROW NAVIGATION LOGIC ----------------------------------------------------------------------
+document.addEventListener('keydown', (event) => {
+
+    if (!globals.selected_annotation) {
+
+        if (event.key.includes("Arrow")) {
+            pause();
+
+            if (event.key == "ArrowRight" || event.key == "ArrowUp") globals.frameIndex += 1;
+
+            else if (event.key == "ArrowLeft" || event.key == "ArrowDown") globals.frameIndex -= 1;
+
+            if (globals.frameIndex < 0) globals.frameIndex = 0;
+            if (globals.frameIndex > globals.frameCount - 1) globals.frameIndex = globals.frameCount - 1;
+
+            document.getElementById('twoD-slider').value = globals.frameIndex;
+
+            loadFrame(globals.frameIndex);
+            preloadFrames(globals.frameIndex);
+            evictCache();
+
+            // Clear canvas and draw new image.
+            globals.ctx.clearRect(0, 0, globals.canvas.width, globals.canvas.height);
+            globals.ctx.drawImage(globals.imageObjects[globals.frameIndex], 0, 0);
+
+            // Update frame label.
+            document.getElementById('frameCounter').textContent = `Frame: ${globals.frameIndex + 1}/${globals.frameCount}`;
+
+            if (globals.show_annotations) {
+                // Draw all frame level annotations.
+                redrawAnnotations();
+
+                if (globals.multiBoxAnnotating && globals.multiPlaced) {
+                    drawBoundingBox();
+                }
+
+            }
+        }
+    }
+
+});
+
+
+// SCOLL NAVIGATION LOGIC ----------------------------------------------------------------------
+export function scroll_2d(event){
+    pause();
+    const delta = Math.sign(event.deltaY) * -1;
+
+    globals.frameIndex += delta;
+
+    if (globals.frameIndex < 0) globals.frameIndex = 0;
+    if (globals.frameIndex > globals.frameCount - 1) globals.frameIndex = globals.frameCount - 1;
+
+    document.getElementById('twoD-slider').value = globals.frameIndex;
+
+    loadFrame(globals.frameIndex);
+    preloadFrames(globals.frameIndex);
+    evictCache();
+    
+    // Clear canvas and draw new image.
+    globals.ctx.clearRect(0, 0, globals.canvas.width, globals.canvas.height);
+    globals.ctx.drawImage(globals.imageObjects[globals.frameIndex], 0, 0);
+
+    // Update frame label.
+    document.getElementById('frameCounter').textContent = `Frame: ${globals.frameIndex + 1}/${globals.frameCount}`;
+
+    if (globals.show_annotations) {
+        // Draw all frame level annotations.
+        redrawAnnotations();
+
+        if (globals.multiBoxAnnotating && globals.multiPlaced) {
+            drawBoundingBox();
+        }
+
+    }   
+
+}
+
 // 2D START PLAYBACK LOGIC --------------------------------------------------------------------
 export function play() {
     globals.isPlaying = true;
     document.getElementById('twoD-play-pause').textContent = "Pause";
 
-    globals.animationInterval = setInterval(() => {
+    globals.animationInterval = setInterval(async() => {
         
         // Destructure globals object (redeclares variables). 
         const { ctx, canvas, imageObjects, frameCount } = globals;
+
+        // Ensure frames are loaded.
+        await loadFrame(globals.frameIndex);
+
         // Clear the canvas.
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         // Draw a stored image.
@@ -55,6 +142,12 @@ export function play() {
             // Draw all frame level annotations.
             redrawAnnotations();
         }
+
+        // Preload frame buffer
+        preloadFrames(globals.frameIndex, 5);
+        evictCache();
+
+
     }, 1000 / globals.fps);
 }
 
@@ -135,4 +228,75 @@ export function clearFrameMemory(){
         globals.urls.length = 0;
         globals.urls = null;
     }
+}
+
+// LOAD FRAME LOGIC --------------------------------------------------------------------------
+export async function loadFrame(index){
+
+    // Check to see if frame is already loaded.
+    if(globals.imageObjects[index] != null){
+        console.log("Returning");
+        return;
+    }
+    console.log("HI")
+    console.log(globals.imageObjects)
+    // If we already have a url, reassign.
+    if(globals.urls[index] != null){
+        console.log("We already have a URL for this")
+        // Create image and store.
+        const img = new Image();
+        globals.imageObjects[index] = img;
+
+        return new Promise(resolve => {
+            img.onload = resolve;
+            img.src = globals.urls[index];
+        });
+    }
+
+    // Grtab pixel array and create Blob.
+    const frameBuffer = globals.pixelDataArrayBuffers[index];
+    const blob = new Blob([frameBuffer], { type: 'image/jpeg' });
+    const url = URL.createObjectURL(blob);
+
+    globals.urls[index] = url;
+
+    // Create image and store.
+    const img = new Image();
+    globals.imageObjects[index] = img;
+
+    return new Promise(resolve => {
+        img.onload = resolve;
+        img.src = url;
+    });
+
+}
+
+// PRELOAD FRAME LOGIC ------------------------------------------------------------------------
+export function preloadFrames(index, bufferSize = 5){
+    
+    // Load an area of 5 frames before and after current frame index.
+    for(let i = -bufferSize; i <= bufferSize; i++){
+        const preloadIndex = (index + i + globals.frameCount) % globals.frameCount;
+        loadFrame(preloadIndex);
+    }
+}
+
+// EVICT FRAME LOGIC --------------------------------------------------------------------------
+export function evictCache(){
+
+    // Loop through all frames.
+    for (let i = 0; i < globals.frameCount; i++) {
+
+        // If the frame is outside of a 5 perimeter cache revoke and set to null.
+        if (i < globals.frameIndex - 5 || i > globals.frameIndex + 5) {
+
+            if (globals.imageObjects[i]) {
+                URL.revokeObjectURL(globals.urls[i]);
+                globals.imageObjects[i].src = "";
+                globals.imageObjects[i] = null;
+                globals.urls[i] = null;
+            }
+        }
+    }
+
 }

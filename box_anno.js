@@ -23,9 +23,9 @@ export function drawBoundingBox(){
 export function mouseMoveBoxAnnotate(event){
     redrawAnnotations();
 
-    const rect = globals.annotation_canvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const mouseX = (event.clientX - globals.rect.left) * globals.scaleX;
+    const mouseY = (event.clientY - globals.rect.top) * globals.scaleY;
+
     const ctx = globals.annotation_ctx;
 
     ctx.beginPath();
@@ -36,10 +36,9 @@ export function mouseMoveBoxAnnotate(event){
 
 // ANNOTATE BOXES LOGIC ------------------------------------------------------------------------
 export function annotateBoxes(event){
-
-    const rect = globals.annotation_canvas.getBoundingClientRect();
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    
+    const mouseX = (event.clientX - globals.rect.left) * globals.scaleX;
+    const mouseY = (event.clientY - globals.rect.top) * globals.scaleY;
 
     // If bounds selected is 0 (none selected), assign box coordinates.
     if (!globals.box_bounds_selected) {
@@ -180,12 +179,12 @@ document.getElementById('bounding-multi-frame').addEventListener('click', async(
 
 
 // BOUNDING BOX BOUND MOVEMENT LOGIC ------------------------------------------------------------
-export function moveBoxBounds(event, rect) {
+export function moveBoxBounds(event) {
 
     let designator = globals.modif_anno_info[5];
 
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const mouseX = (event.clientX - globals.rect.left) * globals.scaleX;
+    const mouseY = (event.clientY - globals.rect.top) * globals.scaleY;
 
     let deltaX = mouseX - globals.lastMouseX;
     let deltaY = mouseY - globals.lastMouseY;
@@ -242,12 +241,10 @@ export function setBoundsAnnotation(event) {
 
 // MOVING BOX MANIPULATION LOGIC ---------------------------------------------------------------
 export function moveBoxAnnotation(event, originX, originY) {
+    
     // Move the box according to the mouse movement.
-
-    const rect = globals.annotation_canvas.getBoundingClientRect();
-
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const mouseX = (event.clientX - globals.rect.left) * globals.scaleX;
+    const mouseY = (event.clientY - globals.rect.top) * globals.scaleY;
 
     // Compute gap and new coordinates.
     // Note that negative means left or up. Positive means right or down.
@@ -261,8 +258,8 @@ export function moveBoxAnnotation(event, originX, originY) {
     const height = globals.modif_anno_info[3];
 
     // Canvas Maxs.
-    const canvas_xmax = globals.annotation_canvas.clientWidth;
-    const canvas_ymax = globals.annotation_canvas.clientHeight;
+    const canvas_xmax = globals.annotation_canvas.width;
+    const canvas_ymax = globals.annotation_canvas.height;
 
     // New Coordinates.
     let new_x = xcoord + x_gap;

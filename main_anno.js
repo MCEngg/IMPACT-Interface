@@ -24,7 +24,41 @@ import { mouseMovePolyAnnotate, placeDataPoint, poly_dataPoints } from "./poly_a
 //                      dataPoints: []}
 
 
-export const annotations = [];
+export const annotations = [
+    {
+        type: "polygon",
+        annotation_name: "LV",
+        frame: 7,
+        id: "P0",
+        abnormal: "NL",
+        dataPoints: [[406.5054945054945, 310.38827838827837],
+            [415.8827838827839, 288.8205128205128],
+            [417.2893772893773, 278.03663003663],
+            [414.4761904761905, 263.032967032967],
+            [406.97435897435895, 254.5934065934066],
+            [400.4102564102564, 255.06227106227107],
+            [398.0659340659341, 271.003663003663],
+            [390.56410256410254, 287.8827838827839],
+            [384, 297.2600732600733],
+            [373.2161172161172, 309.9194139194139]],
+        openCountour: false
+    },
+    {
+        type: "polygon",
+        annotation_name: "RV",
+        frame: 7,
+        id: "P1",
+        abnormal: "NL",
+        dataPoints: [[312.73260073260076, 285.0695970695971],
+        [324.9230769230769, 265.84615384615387],
+        [347.8974358974359, 252.24908424908426],
+        [377.9047619047619, 247.0915750915751],
+        [389.6263736263736, 253.65567765567766],
+        [389.15750915750914, 266.7838827838828],
+        [377.43589743589746, 287.8827838827839]],
+        openContour: false
+    }
+];
 
 export let selected_row = null;
 export let movement = null;
@@ -212,78 +246,6 @@ export function addAnnotationLog(type){
 
 }
 
-// ARROW NAVIGATION LOGIC ----------------------------------------------------------------------
-document.addEventListener('keydown', (event) => {
-
-
-    if(event.key.includes("Arrow")){
-        pause();
-
-        if (event.key == "ArrowRight" || event.key == "ArrowUp") globals.frameIndex += 1;
-
-        else if (event.key == "ArrowLeft" || event.key == "ArrowDown") globals.frameIndex -= 1;
-
-        if(globals.frameIndex < 0) globals.frameIndex = 0;
-        if(globals.frameIndex > globals.frameCount - 1) globals.frameIndex = globals.frameCount - 1; 
-        
-        document.getElementById('twoD-slider').value = globals.frameIndex;
-
-        // Clear canvas and draw new image.
-        globals.ctx.clearRect(0, 0, globals.canvas.width, globals.canvas.height);
-        globals.ctx.drawImage(globals.imageObjects[globals.frameIndex], 0, 0);
-    
-        // Update frame label.
-        document.getElementById('frameCounter').textContent = `Frame: ${globals.frameIndex+1}/${globals.frameCount}`;
-    
-        if(globals.show_annotations){
-            // Draw all frame level annotations.
-            redrawAnnotations();
-    
-            if(globals.multiBoxAnnotating && globals.multiPlaced){
-                drawBoundingBox();
-            }
-    
-        }   
-    }
-
-});
-
-// SCOLL NAVIGATION LOGIC ----------------------------------------------------------------------
-
-export function scroll_2d(event){
-    pause();
-    const delta = Math.sign(event.deltaY) * -1;
-
-    globals.frameIndex += delta;
-
-    if (globals.frameIndex < 0) globals.frameIndex = 0;
-    if (globals.frameIndex > globals.frameCount - 1) globals.frameIndex = globals.frameCount - 1;
-
-    document.getElementById('twoD-slider').value = globals.frameIndex;
-
-    // Clear canvas and draw new image.
-    globals.ctx.clearRect(0, 0, globals.canvas.width, globals.canvas.height);
-    globals.ctx.drawImage(globals.imageObjects[globals.frameIndex], 0, 0);
-
-    // Update frame label.
-    document.getElementById('frameCounter').textContent = `Frame: ${globals.frameIndex + 1}/${globals.frameCount}`;
-
-    if (globals.show_annotations) {
-        // Draw all frame level annotations.
-        redrawAnnotations();
-
-        if (globals.multiBoxAnnotating && globals.multiPlaced) {
-            drawBoundingBox();
-        }
-
-    }   
-
-}
-
-
-
-
-
 // APP KEY PRESS LOGIC -------------------------------------------------------------------------
 document.addEventListener('keyup', (event) => {
     
@@ -424,7 +386,7 @@ document.addEventListener('keyup', (event) => {
     }
 
     // Annotation Table Selection Abort.
-    if (globals.selected_annotation && event.key != " ") {
+    if (globals.selected_annotation && event.key != " " && (event.key != "ArrowUp" && event.key != "ArrowDown" && event.key != "ArrowLeft" && event.key != "ArrowRight")) {
         globals.selected_annotation = false;
         redrawAnnotations();
         console.log("Not Focused on table");
@@ -488,7 +450,7 @@ document.getElementById('annotation-table').addEventListener('mousedown', (event
         const { ctx, canvas, imageObjects, frameCount } = globals;
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(imageObjects[anno_frame-1], 0, 0);
+        ctx.drawImage(imageObjects[anno_frame - 1].img, 0, 0);
 
         globals.frameIndex = (anno_frame-1);
 
@@ -565,14 +527,10 @@ document.addEventListener('mousedown', (event) => {
 
     // Canvas is clicked and annotation is selected.
     if(globals.selected_annotation && (event.target.id == "annotation-canvas")){
+
+        const mouseX = (event.clientX - globals.rect.left) * globals.scaleX;
+        const mouseY = (event.clientY - globals.rect.top) * globals.scaleY;
         
-        // console.log("CHECKING POSITION");
-        // console.log(globals.anno_designator);
-
-        const rect = globals.annotation_canvas.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
-
         boxBoundsDetection(mouseX, mouseY);
 
         if(globals.modif_anno_info[5] == "inside"){
@@ -589,7 +547,7 @@ document.addEventListener('mousedown', (event) => {
         else if(globals.modif_anno_info[5] != "out"){
             
             // The user is now modifying the bounds of the box.
-            move_bounds = (event) => moveBoxBounds(event, rect);
+            move_bounds = (event) => moveBoxBounds(event);
             globals.annotation_canvas.addEventListener('mousemove', move_bounds);
             globals.annotation_canvas.addEventListener('mouseup', (event) => { setBoundsAnnotation(event) });
             globals.lastMouseX = mouseX;
