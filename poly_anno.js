@@ -59,6 +59,15 @@ export function placeDataPoint(event){
 
     }
 
+    if(!globals.oc_polyAnnotation){
+        const ctx = globals.annotation_ctx;
+        ctx.beginPath();
+        ctx.moveTo(poly_dataPoints[0][0], poly_dataPoints[0][1]);
+        ctx.lineTo(mouseX, mouseY);
+        ctx.strokeStyle = "red";
+        ctx.stroke();
+    }
+
 }
 
 export function mouseMovePolyAnnotate(event){

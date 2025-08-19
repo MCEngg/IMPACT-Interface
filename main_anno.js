@@ -1,5 +1,5 @@
 import { globals } from "./globals.js";
-import { pause, play } from "./twoDRendering.js";
+import { pause, play, loadFrame, preloadFrames, evictCache } from "./twoDRendering.js";
 import { mouseMoveBoxAnnotate, annotateBoxes, moveBoxBounds, setBoundsAnnotation, moveBoxAnnotation, setMovedBoxAnnotation, boxBoundsDetection, drawBoundingBox, multiFrame } from "./box_anno.js";
 import { mouseMovePolyAnnotate, placeDataPoint, poly_dataPoints } from "./poly_anno.js";
 
@@ -24,41 +24,7 @@ import { mouseMovePolyAnnotate, placeDataPoint, poly_dataPoints } from "./poly_a
 //                      dataPoints: []}
 
 
-export const annotations = [
-    {
-        type: "polygon",
-        annotation_name: "LV",
-        frame: 7,
-        id: "P0",
-        abnormal: "NL",
-        dataPoints: [[406.5054945054945, 310.38827838827837],
-            [415.8827838827839, 288.8205128205128],
-            [417.2893772893773, 278.03663003663],
-            [414.4761904761905, 263.032967032967],
-            [406.97435897435895, 254.5934065934066],
-            [400.4102564102564, 255.06227106227107],
-            [398.0659340659341, 271.003663003663],
-            [390.56410256410254, 287.8827838827839],
-            [384, 297.2600732600733],
-            [373.2161172161172, 309.9194139194139]],
-        openCountour: false
-    },
-    {
-        type: "polygon",
-        annotation_name: "RV",
-        frame: 7,
-        id: "P1",
-        abnormal: "NL",
-        dataPoints: [[312.73260073260076, 285.0695970695971],
-        [324.9230769230769, 265.84615384615387],
-        [347.8974358974359, 252.24908424908426],
-        [377.9047619047619, 247.0915750915751],
-        [389.6263736263736, 253.65567765567766],
-        [389.15750915750914, 266.7838827838828],
-        [377.43589743589746, 287.8827838827839]],
-        openContour: false
-    }
-];
+export const annotations = [];
 
 export let selected_row = null;
 export let movement = null;
@@ -410,7 +376,7 @@ document.getElementById('dispAnno').addEventListener('click', () => {
 });
 
 // TABLE INTERACTION LOGIC ---------------------------------------------------------------------
-document.getElementById('annotation-table').addEventListener('mousedown', (event) => {
+document.getElementById('annotation-table').addEventListener('mousedown', async (event) => {
     
     pause();
 
@@ -440,7 +406,8 @@ document.getElementById('annotation-table').addEventListener('mousedown', (event
     try{
         // Grab the annotation designator using innerHTML.
         globals.anno_designator = selected_row.cells[2].innerHTML;
-        const anno_frame = parseInt(selected_row.cells[3].innerHTML);
+        // const anno_frame = parseInt(selected_row.cells[3].innerHTML);
+        globals.frameIndex = parseInt(selected_row.cells[3].innerHTML) - 1;
 
         // Return if the header is selected.
         if (globals.anno_designator == "ID") return;
@@ -449,10 +416,12 @@ document.getElementById('annotation-table').addEventListener('mousedown', (event
 
         const { ctx, canvas, imageObjects, frameCount } = globals;
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(imageObjects[anno_frame - 1].img, 0, 0);
+        await loadFrame(globals.frameIndex);
+        preloadFrames(globals.frameIndex);
+        evictCache();
 
-        globals.frameIndex = (anno_frame-1);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(imageObjects[globals.frameIndex], 0, 0);
 
         document.getElementById('frameCounter').textContent = `Frame: ${globals.frameIndex + 1}/${frameCount}`;
         document.getElementById('twoD-slider').value = globals.frameIndex;
@@ -466,9 +435,10 @@ document.getElementById('annotation-table').addEventListener('mousedown', (event
         }
 
     }
-    catch{
+    catch (error){
         // Empty catch block. If there are multiple elements highlighted by cursor we dont want to
         // anything, not a valid selection. Add in ability to hold SHIFT to select mutiple entries.
+        console.error(error);
     }    
 
 
@@ -493,8 +463,6 @@ document.getElementById('annotation-table').addEventListener('change', (event) =
             }
         }
 
-        // console.log(annotations);
-
     }
 });
 
@@ -511,7 +479,6 @@ document.getElementById('annotation-table').addEventListener('input', (event) =>
         }
     }
 
-    // console.log(annotations);
 });
 
 // ANNOTATION DEFOCUS LOGIC --------------------------------------------------------------------

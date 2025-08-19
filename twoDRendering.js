@@ -238,11 +238,10 @@ export async function loadFrame(index){
         console.log("Returning");
         return;
     }
-    console.log("HI")
-    console.log(globals.imageObjects)
+    
     // If we already have a url, reassign.
     if(globals.urls[index] != null){
-        console.log("We already have a URL for this")
+        console.log("We already have a URL for this");
         // Create image and store.
         const img = new Image();
         globals.imageObjects[index] = img;
