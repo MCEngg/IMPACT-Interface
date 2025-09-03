@@ -148,22 +148,10 @@ body {
     background: rgb(9, 85, 120);
     display: none;
     flex-direction: column;
-    /* height: 100%; */
     min-width: 0;
-    /* max-width: 80%; */
     gap: 0;
     padding: 0;
-    /* position: relative; */
 }
-
-/* #twoD-render-area canvas {
-    height: 95%;
-    border: 1px solid #ccc;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    margin-bottom: 10px;
-    gap: 0;
-    padding: 0;
-} */
 
 #twoD-controls {
     display: flex;
